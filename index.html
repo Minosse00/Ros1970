@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gestione Spese</title>
+
+<!-- fontawesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<!-- jsPDF + autotable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<!-- SheetJS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+    :root{
+        --bg-dark:#1e1e1e;
+        --bg-light:#ffffff;
+        --text-dark:#f5f5f5;
+        --text-light:#222222;
+        --accent:#4CAF50;
+        --danger:#f44336;
+    }
+    body{
+        font-family: Arial, sans-serif;
+        background-color:var(--bg-dark);
+        color:var(--text-dark);
+        margin:0;
+        padding:0;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+    }
+    .light-theme{ background-color:var(--bg-light); color:var(--text-light); }
+    header{ padding:1rem; font-size:1.5rem; font-weight:bold; text-align:center; width:100%;}
+    .container{ width:95%; max-width:1200px; }
+    .form-section{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:end; }
+    .form-section label{ display:block; font-size:0.9rem; }
+    input[type="date"], input[type="number"], input[type="text"], input[type="month"]{ padding:8px; font-size:1rem; }
+    table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
+    th, td{ border:1px solid #ccc; padding:8px; text-align:center; }
+    tr:nth-child(even){ background-color: rgba(255,255,255,0.03); }
+    .button-group{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+    button{ border:none; cursor:pointer; border-radius:6px; padding:10px 15px; display:flex; align-items:center; gap:8px; }
+    .accent{ background-color:var(--accent); color:#fff; }
+    .danger{ background-color:var(--danger); color:#fff; }
+    .warning{ background-color:#FFC107; color:#222; }
+    .info{ background-color:#2196F3; color:#fff; }
+    .theme-toggle{ position:absolute; top:10px; right:10px; background:none; color:inherit; font-size:1.2rem; border:none; cursor:pointer;}
+    .green{ color:var(--accent); font-weight:bold; }
+    .red{ color:var(--danger); font-weight:bold; }
+    .summary{ margin-top:15px; padding:10px; border-radius:8px; background:rgba(255,255,255,0.03); display:flex; gap:20px; justify-content:center; font-size:1.05rem; }
+    @media (max-width:768px){
+        .form-section{ flex-direction:column; align-items:stretch; }
+        table{ font-size:0.85rem; display:block; overflow:auto; }
+    }
+</style>
+</head>
+<body>
+<header>Gestione Spese</header>
+<button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
+
+<div class="container">
+    <!-- Form di inserimento -->
+    <div class="form-section">
+        <div>
+            <label for="data">Data</label>
+            <input type="date" id="data">
+        </div>
+        <div>
+            <label for="entrate">Entrate</label>
+            <input type="number" id="entrate" value="0" step="0.01" min="0">
+        </div>
+        <div>
+            <label for="uscite">Uscite</label>
+            <input type="number" id="uscite" value="0" step="0.01" min="0">
+        </div>
+        <div>
+            <label for="note">Note</label>
+            <input type="text" id="note">
+        </div>
+        <div>
+            <button class="accent" onclick="aggiungiVoce()"><i class="fa-solid fa-plus"></i> Aggiungi voce</button>
+        </div>
+    </div>
+
+    <!-- Pulsante toggle storico -->
+    <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye-slash"></i> Nascondi/Mostra Storico</button>
+
+    <!-- Storico -->
+    <div id="storico-container">
+        <table id="storico-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Entrate</th>
+                    <th>Uscite</th>
+                    <th>Note</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- Riepilogo -->
+        <div class="summary" id="summary">
+            <span class="green" id="sum-entrate">Entrate: 0</span>
+            <span class="red" id="sum-uscite">Uscite: 0</span>
+            <span id="sum-fondo">Fondo Cassa: 0</span>
+        </div>
+
+        <!-- Filtri per esportazione -->
+        <div class="button-group" style="margin-top:12px;">
+            <div>
+                <label for="filter-week">Settimana (numero della settimana del mese)</label><br>
+                <input type="number" id="filter-week" min="1" max="5" placeholder="1-5" style="width:80px; padding:6px;">
+            </div>
+            <div>
+                <label for="filter-month">Mese/Anno (MM/YYYY)</label><br>
+                <input type="text" id="filter-month" placeholder="MM/YYYY" style="width:120px; padding:6px;">
+            </div>
+        </div>
+
+        <!-- Pulsanti esportazione -->
+        <div class="button-group" style="margin-top:12px;">
+            <button class="danger" onclick="esportaPDF('all')"><i class="fa-solid fa-file-pdf"></i> Esporta Tutto (PDF)</button>
+            <button class="danger" onclick="esportaPDF('settimana')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
+            <button class="danger" onclick="esportaPDF('mese')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
+            <button class="accent" onclick="esportaExcel('all')"><i class="fa-solid fa-file-excel"></i> Esporta Tutto (XLSX)</button>
+            <button class="accent" onclick="esportaExcel('settimana')"><i class="fa-solid fa-file-excel"></i> Esporta Settimana (XLSX)</button>
+            <button class="accent" onclick="esportaExcel('mese')"><i class="fa-solid fa-file-excel"></i> Esporta Mese (XLSX)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+/* --------------------------------------------------------------------------
+   Funzionalità UI base (tema, toggle storico)
+   -------------------------------------------------------------------------- */
+function toggleTheme(){
+    document.body.classList.toggle("light-theme");
+    const icon = document.querySelector(".theme-toggle i");
+    icon.className = document.body.classList.contains("light-theme") ? "fa-solid fa-sun" : "fa-solid fa-moon";
+}
+function toggleStorico(){
+    const c = document.getElementById("storico-container");
+    c.style.display = c.style.display === "none" ? "block" : "none";
+}
+
+/* --------------------------------------------------------------------------
+   Gestione delle voci di entrata/uscita
+   -------------------------------------------------------------------------- */
+function formatData(dateString){
+    const data = new Date(dateString);
+    const giorno = data.getDate().toString().padStart(2, '0');
+    const mese = (data.getMonth() + 1).toString().padStart(2, '0');
+    const anno = data.getFullYear();
+    return `${giorno}-${mese}-${anno}`;
+}
+
+function aggiungiVoce(){
+    const dataVal = document.getElementById("data").value;
+    const entrateVal = parseFloat(document.getElementById("entrate").value) || 0;
+    const usciteVal = parseFloat(document.getElementById("uscite").value) || 0;
+    const noteVal = document.getElementById("note").value || "-";
+
+    const table = document.getElementById("storico-table").getElementsByTagName('tbody')[0];
+    const newRow = table.insertRow();
+    
+    newRow.innerHTML = `
+        <td>${formatData(dataVal)}</td>
+        <td>${entrateVal.toFixed(2)}</td>
+        <td>${usciteVal.toFixed(2)}</td>
+        <td>${noteVal}</td>
+        <td>
+            <button class="accent" onclick="modificaVoce(this)">Modifica</button>
+            <button class="danger" onclick="rimuoviVoce(this)">Rimuovi</button>
+        </td>
+    `;
+    aggiornaRiepilogo();
+}
+
+function rimuoviVoce(btn){
+    const row = btn.closest("tr");
+    row.remove();
+    aggiornaRiepilogo();
+}
+
+function modificaVoce(btn){
+    const row = btn.closest("tr");
+    const data = row.cells[0].textContent;
+    const entrate = parseFloat(row.cells[1].textContent);
+    const uscite = parseFloat(row.cells[2].textContent);
+    const note = row.cells[3].textContent;
+
+    document.getElementById("data").value = data.split('-').reverse().join('-');
+    document.getElementById("entrate").value = entrate;
+    document.getElementById("uscite").value = uscite;
+    document.getElementById("note").value = note;
+
+    row.remove();  // Rimuovi la riga per poi sostituirla
+    aggiornaRiepilogo();
+}
+
+function aggiornaRiepilogo(){
+    const rows = document.querySelectorAll("#storico-table tbody tr");
+    let entrateTot = 0, usciteTot = 0;
+
+    rows.forEach(row => {
+        entrateTot += parseFloat(row.cells[1].textContent);
+        usciteTot += parseFloat(row.cells[2].textContent);
+    });
+
+    document.getElementById("sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
+    document.getElementById("sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
+    document.getElementById("sum-fondo").textContent = `Fondo Cassa: ${(entrateTot - usciteTot).toFixed(2)}`;
+}
+
+/* --------------------------------------------------------------------------
+   Esportazione dei dati
+   -------------------------------------------------------------------------- */
+function esportaPDF(tipo){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const rows = filtraDati(tipo);
+
+    if(rows.length === 0){
+        alert("Nessun dato da esportare!");
+        return;
+    }
+
+    const columns = ['Data', 'Entrate', 'Uscite', 'Note'];
+    const data = rows.map(row => [
+        row.data,
+        row.entrate.toFixed(2),
+        row.uscite.toFixed(2),
+        row.note
+    ]);
+
+    doc.autoTable({
+        head: [columns],
+        body: data,
+        startY: 30,
+        margin: { top: 10 },
+        theme: 'grid'
+    });
+
+    doc.save(`storico_spese_${tipo}.pdf`);
+}
+
+function esportaExcel(tipo){
+    const rows = filtraDati(tipo);
+
+    if(rows.length === 0){
+        alert("Nessun dato da esportare!");
+        return;
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([
+        ['Data', 'Entrate', 'Uscite', 'Note'],
+        ...rows.map(row => [
+            row.data,
+            row.entrate.toFixed(2),
+            row.uscite.toFixed(2),
+            row.note
+        ])
+    ]);
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Storico Spese');
+    XLSX.writeFile(wb, `storico_spese_${tipo}.xlsx`);
+}
+
+function filtraDati(tipo){
+    const rows = [];
+    const settimanaFiltro = document.getElementById("filter-week").value;
+    const meseFiltro = document.getElementById("filter-month").value;
+
+    document.querySelectorAll("#storico-table tbody tr").forEach(row => {
+        const data = row.cells[0].textContent;
+        const entrate = parseFloat(row.cells[1].textContent);
+        const uscite = parseFloat(row.cells[2].textContent);
+        const note = row.cells[3].textContent;
+
+        let include = false;
+        if(tipo === 'all'){
+            include = true;
+        } else if(tipo === 'settimana' && settimanaFiltro){
+            const date = new Date(data);
+            const settimana = Math.ceil((date.getDate() - date.getDay() + 1) / 7);
+            include = settimana == settimanaFiltro;
+        } else if(tipo === 'mese' && meseFiltro){
+            const [mese, anno] = meseFiltro.split('/');
+            const date = new Date(data);
+            include = date.getMonth() + 1 == mese && date.getFullYear() == anno;
+        }
+
+        if(include){
+            rows.push({ data, entrate, uscite, note });
+        }
+    });
+
+    return rows;
+}
+</script>
+</body>
+</html>

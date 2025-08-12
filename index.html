@@ -1,310 +1,667 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Gestione Spese</title>
-
-<!-- fontawesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-
-<!-- jsPDF + autotable -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
-<!-- SheetJS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-<style>
-    :root{
-        --bg-dark:#1e1e1e;
-        --bg-light:#ffffff;
-        --text-dark:#f5f5f5;
-        --text-light:#222222;
-        --accent:#4CAF50;
-        --danger:#f44336;
-    }
-    body{
-        font-family: Arial, sans-serif;
-        background-color:var(--bg-dark);
-        color:var(--text-dark);
-        margin:0;
-        padding:0;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-    }
-    .light-theme{ background-color:var(--bg-light); color:var(--text-light); }
-    header{ padding:1rem; font-size:1.5rem; font-weight:bold; text-align:center; width:100%;}
-    .container{ width:95%; max-width:1200px; }
-    .form-section{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:end; }
-    .form-section label{ display:block; font-size:0.9rem; }
-    input[type="date"], input[type="number"], input[type="text"], input[type="month"]{ padding:8px; font-size:1rem; }
-    table{ width:100%; border-collapse:collapse; margin-bottom:10px; }
-    th, td{ border:1px solid #ccc; padding:8px; text-align:center; }
-    tr:nth-child(even){ background-color: rgba(255,255,255,0.03); }
-    .button-group{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
-    button{ border:none; cursor:pointer; border-radius:6px; padding:10px 15px; display:flex; align-items:center; gap:8px; }
-    .accent{ background-color:var(--accent); color:#fff; }
-    .danger{ background-color:var(--danger); color:#fff; }
-    .warning{ background-color:#FFC107; color:#222; }
-    .info{ background-color:#2196F3; color:#fff; }
-    .theme-toggle{ position:absolute; top:10px; right:10px; background:none; color:inherit; font-size:1.2rem; border:none; cursor:pointer;}
-    .green{ color:var(--accent); font-weight:bold; }
-    .red{ color:var(--danger); font-weight:bold; }
-    .summary{ margin-top:15px; padding:10px; border-radius:8px; background:rgba(255,255,255,0.03); display:flex; gap:20px; justify-content:center; font-size:1.05rem; }
-    @media (max-width:768px){
-        .form-section{ flex-direction:column; align-items:stretch; }
-        table{ font-size:0.85rem; display:block; overflow:auto; }
-    }
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestione Spese con Firebase</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <style>
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-light: #ffffff;
+            --text-dark: #f5f5f5;
+            --text-light: #222222;
+            --accent: #4CAF50;
+            --danger: #f44336;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .light-theme {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+        }
+        header {
+            padding: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            width: 100%;
+        }
+        .container {
+            width: 95%;
+            max-width: 1200px;
+        }
+        .form-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+        }
+        .form-section > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            flex: 1;
+            min-width: 150px;
+        }
+        .form-section label {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        input[type="date"],
+        input[type="number"],
+        input[type="text"],
+        select {
+            padding: 8px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        button {
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .accent {
+            background-color: var(--accent);
+            color: #fff;
+        }
+        .danger {
+            background-color: var(--danger);
+            color: #fff;
+        }
+        .warning {
+            background-color: #FFC107;
+            color: #222;
+        }
+        .info {
+            background-color: #2196F3;
+            color: #fff;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            color: inherit;
+            font-size: 1.2rem;
+            border: none;
+            cursor: pointer;
+        }
+        .green {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        .red {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        .summary {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            font-size: 1.05rem;
+        }
+        .table-scroll {
+            overflow-y: auto;
+            max-height: 400px;
+            overflow-x: auto;
+        }
+        .glow {
+            box-shadow: 0 0 8px 4px #2196F3;
+            transition: box-shadow 0.5s ease-in-out;
+        }
+        @media (max-width: 768px) {
+            .form-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-section > div {
+                align-items: stretch;
+            }
+            table {
+                font-size: 0.85rem;
+            }
+            .button-group {
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
-<header>Gestione Spese</header>
-<button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
-
-<div class="container">
-    <!-- Form di inserimento -->
-    <div class="form-section">
-        <div>
-            <label for="data">Data</label>
-            <input type="date" id="data">
-        </div>
-        <div>
-            <label for="entrate">Entrate</label>
-            <input type="number" id="entrate" value="0" step="0.01" min="0">
-        </div>
-        <div>
-            <label for="uscite">Uscite</label>
-            <input type="number" id="uscite" value="0" step="0.01" min="0">
-        </div>
-        <div>
-            <label for="note">Note</label>
-            <input type="text" id="note">
-        </div>
-        <div>
-            <button class="accent" onclick="aggiungiVoce()"><i class="fa-solid fa-plus"></i> Aggiungi voce</button>
-        </div>
-    </div>
-
-    <!-- Pulsante toggle storico -->
-    <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye-slash"></i> Nascondi/Mostra Storico</button>
-
-    <!-- Storico -->
-    <div id="storico-container">
-        <table id="storico-table">
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Entrate</th>
-                    <th>Uscite</th>
-                    <th>Note</th>
-                    <th>Azioni</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-
-        <!-- Riepilogo -->
-        <div class="summary" id="summary">
-            <span class="green" id="sum-entrate">Entrate: 0</span>
-            <span class="red" id="sum-uscite">Uscite: 0</span>
-            <span id="sum-fondo">Fondo Cassa: 0</span>
-        </div>
-
-        <!-- Filtri per esportazione -->
-        <div class="button-group" style="margin-top:12px;">
+    <header>Gestione Spese</header>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
+    <div class="container">
+        <div class="form-section">
             <div>
-                <label for="filter-week">Settimana (numero della settimana del mese)</label><br>
-                <input type="number" id="filter-week" min="1" max="5" placeholder="1-5" style="width:80px; padding:6px;">
+                <label for="data">Data</label>
+                <input type="date" id="data" />
             </div>
             <div>
-                <label for="filter-month">Mese/Anno (MM/YYYY)</label><br>
-                <input type="text" id="filter-month" placeholder="MM/YYYY" style="width:120px; padding:6px;">
+                <label for="entrate">Entrate</label>
+                <input type="number" id="entrate" value="0" step="0.01" min="0" />
+            </div>
+            <div>
+                <label for="uscite">Uscite</label>
+                <input type="number" id="uscite" value="0" step="0.01" min="0" />
+            </div>
+            <div>
+                <label for="note">Note</label>
+                <select id="note-select" onchange="toggleAltraNota()">
+                    <option value="">Seleziona una nota...</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Pedaggio Autostradale">Pedaggio Autostradale</option>
+                    <option value="Canone Telepass">Canone Telepass</option>
+                    <option value="Altro">Altro</option>
+                </select>
+                <input type="text" id="altra-nota" style="display: none; margin-top: 5px" placeholder="Inserisci altra nota" />
+            </div>
+            <div style="flex-grow: 0;">
+                <button class="accent" onclick="aggiungiVoce()"><i class="fa-solid fa-plus"></i> Aggiungi Dati</button>
             </div>
         </div>
-
-        <!-- Pulsanti esportazione -->
-        <div class="button-group" style="margin-top:12px;">
-            <button class="danger" onclick="esportaPDF('all')"><i class="fa-solid fa-file-pdf"></i> Esporta Tutto (PDF)</button>
-            <button class="danger" onclick="esportaPDF('settimana')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
-            <button class="danger" onclick="esportaPDF('mese')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
-            <button class="accent" onclick="esportaExcel('all')"><i class="fa-solid fa-file-excel"></i> Esporta Tutto (XLSX)</button>
-            <button class="accent" onclick="esportaExcel('settimana')"><i class="fa-solid fa-file-excel"></i> Esporta Settimana (XLSX)</button>
-            <button class="accent" onclick="esportaExcel('mese')"><i class="fa-solid fa-file-excel"></i> Esporta Mese (XLSX)</button>
+        <div class="button-group">
+            <button class="accent" onclick="salvaDatiOnline()"><i class="fa-solid fa-cloud-upload-alt"></i> Salva su Firebase</button>
+            <button class="info" onclick="caricaDatiOnline()"><i class="fa-solid fa-cloud-download-alt"></i> Carica da Firebase</button>
+        </div>
+        <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
+        <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye-slash"></i> Nascondi Storico</button>
+        <div id="storico-container">
+            <div class="table-scroll">
+                <table id="storico-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Entrate</th>
+                            <th>Uscite</th>
+                            <th>Note</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="summary" id="summary">
+                <span class="green" id="sum-entrate">Entrate: 0</span>
+                <span class="red" id="sum-uscite">Uscite: 0</span>
+                <span id="sum-fondo">Fondo Cassa: 0</span>
+            </div>
+        </div>
+        <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
+        <div class="search-section">
+            <h3>Ricerca e Gestione Dati</h3>
+            <div class="form-section">
+                <div>
+                    <label for="search-week-date">Data (per settimana)</label>
+                    <input type="date" id="search-week-date" />
+                </div>
+                <div>
+                    <label for="search-month">Mese/Anno (MM/YYYY)</label>
+                    <input type="text" id="search-month" placeholder="MM/YYYY" />
+                </div>
+                <div>
+                    <button class="info" onclick="cercaDatiFiltrati()">Cerca</button>
+                    <button class="warning" onclick="pulisciRisultati()">Pulisci Risultati</button>
+                </div>
+            </div>
+            <div class="button-group" style="margin-top: 12px; justify-content: flex-start">
+                <button class="danger" onclick="esportaPDF('settimana')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
+                <button class="danger" onclick="esportaPDF('mese')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
+                <button class="accent" onclick="esportaExcel('settimana')"><i class="fa-solid fa-file-excel"></i> Esporta Settimana (XLSX)</button>
+                <button class="accent" onclick="esportaExcel('mese')"><i class="fa-solid fa-file-excel"></i> Esporta Mese (XLSX)</button>
+            </div>
+            <div id="risultati-ricerca" style="display: none; margin-top: 20px">
+                <h4>Risultati Trovati</h4>
+                <div class="table-scroll">
+                    <table id="search-results-table">
+                        <thead>
+                            <tr>
+                                <th>Seleziona</th>
+                                <th>Data</th>
+                                <th>Entrate</th>
+                                <th>Uscite</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="summary" id="search-summary">
+                    <span class="green" id="search-sum-entrate">Entrate: 0</span>
+                    <span class="red" id="search-sum-uscite">Uscite: 0</span>
+                    <span id="search-sum-fondo">Fondo Cassa: 0</span>
+                </div>
+                <div style="margin-top: 12px">
+                    <button class="danger" onclick="cancellaDatiSelezionati()">Cancella Voci Selezionate</button>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-
-<script>
-/* --------------------------------------------------------------------------
-   Funzionalità UI base (tema, toggle storico)
-   -------------------------------------------------------------------------- */
-function toggleTheme(){
-    document.body.classList.toggle("light-theme");
-    const icon = document.querySelector(".theme-toggle i");
-    icon.className = document.body.classList.contains("light-theme") ? "fa-solid fa-sun" : "fa-solid fa-moon";
-}
-function toggleStorico(){
-    const c = document.getElementById("storico-container");
-    c.style.display = c.style.display === "none" ? "block" : "none";
-}
-
-/* --------------------------------------------------------------------------
-   Gestione delle voci di entrata/uscita
-   -------------------------------------------------------------------------- */
-function formatData(dateString){
-    const data = new Date(dateString);
-    const giorno = data.getDate().toString().padStart(2, '0');
-    const mese = (data.getMonth() + 1).toString().padStart(2, '0');
-    const anno = data.getFullYear();
-    return `${giorno}-${mese}-${anno}`;
-}
-
-function aggiungiVoce(){
-    const dataVal = document.getElementById("data").value;
-    const entrateVal = parseFloat(document.getElementById("entrate").value) || 0;
-    const usciteVal = parseFloat(document.getElementById("uscite").value) || 0;
-    const noteVal = document.getElementById("note").value || "-";
-
-    const table = document.getElementById("storico-table").getElementsByTagName('tbody')[0];
-    const newRow = table.insertRow();
-    
-    newRow.innerHTML = `
-        <td>${formatData(dataVal)}</td>
-        <td>${entrateVal.toFixed(2)}</td>
-        <td>${usciteVal.toFixed(2)}</td>
-        <td>${noteVal}</td>
-        <td>
-            <button class="accent" onclick="modificaVoce(this)">Modifica</button>
-            <button class="danger" onclick="rimuoviVoce(this)">Rimuovi</button>
-        </td>
-    `;
-    aggiornaRiepilogo();
-}
-
-function rimuoviVoce(btn){
-    const row = btn.closest("tr");
-    row.remove();
-    aggiornaRiepilogo();
-}
-
-function modificaVoce(btn){
-    const row = btn.closest("tr");
-    const data = row.cells[0].textContent;
-    const entrate = parseFloat(row.cells[1].textContent);
-    const uscite = parseFloat(row.cells[2].textContent);
-    const note = row.cells[3].textContent;
-
-    document.getElementById("data").value = data.split('-').reverse().join('-');
-    document.getElementById("entrate").value = entrate;
-    document.getElementById("uscite").value = uscite;
-    document.getElementById("note").value = note;
-
-    row.remove();  // Rimuovi la riga per poi sostituirla
-    aggiornaRiepilogo();
-}
-
-function aggiornaRiepilogo(){
-    const rows = document.querySelectorAll("#storico-table tbody tr");
-    let entrateTot = 0, usciteTot = 0;
-
-    rows.forEach(row => {
-        entrateTot += parseFloat(row.cells[1].textContent);
-        usciteTot += parseFloat(row.cells[2].textContent);
-    });
-
-    document.getElementById("sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
-    document.getElementById("sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
-    document.getElementById("sum-fondo").textContent = `Fondo Cassa: ${(entrateTot - usciteTot).toFixed(2)}`;
-}
-
-/* --------------------------------------------------------------------------
-   Esportazione dei dati
-   -------------------------------------------------------------------------- */
-function esportaPDF(tipo){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const rows = filtraDati(tipo);
-
-    if(rows.length === 0){
-        alert("Nessun dato da esportare!");
-        return;
-    }
-
-    const columns = ['Data', 'Entrate', 'Uscite', 'Note'];
-    const data = rows.map(row => [
-        row.data,
-        row.entrate.toFixed(2),
-        row.uscite.toFixed(2),
-        row.note
-    ]);
-
-    doc.autoTable({
-        head: [columns],
-        body: data,
-        startY: 30,
-        margin: { top: 10 },
-        theme: 'grid'
-    });
-
-    doc.save(`storico_spese_${tipo}.pdf`);
-}
-
-function esportaExcel(tipo){
-    const rows = filtraDati(tipo);
-
-    if(rows.length === 0){
-        alert("Nessun dato da esportare!");
-        return;
-    }
-
-    const ws = XLSX.utils.aoa_to_sheet([
-        ['Data', 'Entrate', 'Uscite', 'Note'],
-        ...rows.map(row => [
-            row.data,
-            row.entrate.toFixed(2),
-            row.uscite.toFixed(2),
-            row.note
-        ])
-    ]);
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Storico Spese');
-    XLSX.writeFile(wb, `storico_spese_${tipo}.xlsx`);
-}
-
-function filtraDati(tipo){
-    const rows = [];
-    const settimanaFiltro = document.getElementById("filter-week").value;
-    const meseFiltro = document.getElementById("filter-month").value;
-
-    document.querySelectorAll("#storico-table tbody tr").forEach(row => {
-        const data = row.cells[0].textContent;
-        const entrate = parseFloat(row.cells[1].textContent);
-        const uscite = parseFloat(row.cells[2].textContent);
-        const note = row.cells[3].textContent;
-
-        let include = false;
-        if(tipo === 'all'){
-            include = true;
-        } else if(tipo === 'settimana' && settimanaFiltro){
-            const date = new Date(data);
-            const settimana = Math.ceil((date.getDate() - date.getDay() + 1) / 7);
-            include = settimana == settimanaFiltro;
-        } else if(tipo === 'mese' && meseFiltro){
-            const [mese, anno] = meseFiltro.split('/');
-            const date = new Date(data);
-            include = date.getMonth() + 1 == mese && date.getFullYear() == anno;
+    <script>
+        let storicoDati = [];
+        const firebaseConfig = {
+            apiKey: "AIzaSyCKf4B5Sr4chHiUw3xlfumk3Qzj7zF581U",
+            authDomain: "gestione-spese-9a9fd.firebaseapp.com",
+            databaseURL: "https://gestione-spese-9a9fd-default-rtdb.firebaseio.com/",
+            projectId: "gestione-spese-9a9fd",
+            storageBucket: "gestione-spese-9a9fd.firebasestorage.app",
+            messagingSenderId: "542317208533",
+            appId: "1:542317208533:web:947f32ccddb4e5ed2c535c",
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-
-        if(include){
-            rows.push({ data, entrate, uscite, note });
+        const database = firebase.database();
+        const dbRef = database.ref("/spese");
+        document.addEventListener("DOMContentLoaded", () => {
+            caricaDatiOnline();
+        });
+        async function salvaDatiOnline() {
+            try {
+                await dbRef.set(storicoDati);
+                alert("Dati salvati su Firebase con successo!");
+            } catch (error) {
+                console.error("Errore nel salvataggio su Firebase:", error);
+                alert("Si è verificato un errore durante il salvataggio su Firebase.");
+            }
         }
-    });
-
-    return rows;
-}
-</script>
+        async function caricaDatiOnline() {
+            const btn = document.querySelector('button.info');
+            btn.classList.add('glow');
+            try {
+                const snapshot = await dbRef.once("value");
+                const data = snapshot.val();
+                if (data) {
+                    storicoDati = data;
+                } else {
+                    storicoDati = [];
+                }
+                ricaricaTabellaPrincipale();
+                aggiornaRiepilogo();
+            } catch (error) {
+                console.error("Errore nel caricamento da Firebase:", error);
+                alert("Si è verificato un errore durante il caricamento da Firebase.");
+            } finally {
+                setTimeout(() => {
+                    btn.classList.remove('glow');
+                }, 1000);
+            }
+        }
+        function toggleTheme() {
+            document.body.classList.toggle("light-theme");
+            const icon = document.querySelector(".theme-toggle i");
+            icon.className = document.body.classList.contains("light-theme") ? "fa-solid fa-sun" : "fa-solid fa-moon";
+        }
+        function toggleStorico() {
+            const c = document.getElementById("storico-container");
+            const btn = document.querySelector(".warning i");
+            if (c.style.display === "none") {
+                c.style.display = "block";
+                btn.className = "fa-solid fa-eye-slash";
+            } else {
+                c.style.display = "none";
+                btn.className = "fa-solid fa-eye";
+            }
+        }
+        function formatData(dateString) {
+            const data = new Date(dateString);
+            const giorno = data.getDate().toString().padStart(2, "0");
+            const mese = (data.getMonth() + 1).toString().padStart(2, "0");
+            const anno = data.getFullYear();
+            return `${giorno}-${mese}-${anno}`;
+        }
+        function toggleAltraNota() {
+            const noteSelect = document.getElementById("note-select");
+            const altraNotaInput = document.getElementById("altra-nota");
+            if (noteSelect.value === "Altro") {
+                altraNotaInput.style.display = "block";
+            } else {
+                altraNotaInput.style.display = "none";
+            }
+        }
+        function aggiungiVoce() {
+            const dataVal = document.getElementById("data").value;
+            const entrateVal = parseFloat(document.getElementById("entrate").value);
+            const usciteVal = parseFloat(document.getElementById("uscite").value);
+            const noteSelectVal = document.getElementById("note-select").value;
+            let noteVal = "";
+            if (noteSelectVal === "Altro") {
+                noteVal = document.getElementById("altra-nota").value || "-";
+            } else {
+                noteVal = noteSelectVal || "-";
+            }
+            if (!dataVal || isNaN(entrateVal) || isNaN(usciteVal) || (entrateVal <= 0 && usciteVal <= 0)) {
+                alert("Per favore, inserisci una data e almeno un valore valido per entrate o uscite.");
+                return;
+            }
+            const nuovaVoce = {
+                data: formatData(dataVal),
+                entrate: entrateVal,
+                uscite: usciteVal,
+                note: noteVal,
+            };
+            storicoDati.push(nuovaVoce);
+            salvaDatiOnline();
+            ricaricaTabellaPrincipale();
+            document.getElementById("data").value = "";
+            document.getElementById("entrate").value = "0";
+            document.getElementById("uscite").value = "0";
+            document.getElementById("note-select").value = "";
+            document.getElementById("altra-nota").value = "";
+            document.getElementById("altra-nota").style.display = "none";
+            aggiornaRiepilogo();
+        }
+        function rimuoviVoce(index) {
+            if (confirm("Sei sicuro di voler rimuovere questa voce?")) {
+                storicoDati.splice(index, 1);
+                salvaDatiOnline();
+                ricaricaTabellaPrincipale();
+                aggiornaRiepilogo();
+            }
+        }
+        function modificaVoce(index) {
+            const itemToModify = storicoDati[index];
+            const dataParts = itemToModify.data.split("-");
+            const formattedDate = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`;
+            document.getElementById("data").value = formattedDate;
+            document.getElementById("entrate").value = itemToModify.entrate;
+            document.getElementById("uscite").value = itemToModify.uscite;
+            const noteSelect = document.getElementById("note-select");
+            const altraNotaInput = document.getElementById("altra-nota");
+            let isDefaultOption = false;
+            for (let i = 0; i < noteSelect.options.length; i++) {
+                if (noteSelect.options[i].value === itemToModify.note) {
+                    noteSelect.value = itemToModify.note;
+                    altraNotaInput.style.display = "none";
+                    isDefaultOption = true;
+                    break;
+                }
+            }
+            if (!isDefaultOption) {
+                noteSelect.value = "Altro";
+                altraNotaInput.value = itemToModify.note;
+                altraNotaInput.style.display = "block";
+            }
+            storicoDati.splice(index, 1);
+            salvaDatiOnline();
+            ricaricaTabellaPrincipale();
+            aggiornaRiepilogo();
+        }
+        function aggiornaRiepilogo() {
+            let entrateTot = 0,
+                usciteTot = 0;
+            storicoDati.forEach((item) => {
+                entrateTot += item.entrate;
+                usciteTot += item.uscite;
+            });
+            document.getElementById("sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
+            document.getElementById("sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
+            document.getElementById("sum-fondo").textContent = `Fondo Cassa: ${(entrateTot - usciteTot).toFixed(2)}`;
+        }
+        function ricaricaTabellaPrincipale() {
+            const tableBody = document.getElementById("storico-table").querySelector("tbody");
+            tableBody.innerHTML = "";
+            const reversedData = [...storicoDati].reverse();
+            reversedData.forEach((item, index) => {
+                const originalIndex = storicoDati.length - 1 - index;
+                const newRow = tableBody.insertRow();
+                newRow.innerHTML = `
+                    <td>${item.data}</td>
+                    <td>${item.entrate.toFixed(2)}</td>
+                    <td>${item.uscite.toFixed(2)}</td>
+                    <td>${item.note}</td>
+                    <td>
+                        <button class="accent" onclick="modificaVoce(${originalIndex})">Modifica</button>
+                        <button class="danger" onclick="rimuoviVoce(${originalIndex})">Rimuovi</button>
+                    </td>
+                `;
+            });
+        }
+        function esportaPDF(tipo) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const rows = filtraDatiPerEsportazione(tipo);
+            if (rows.length === 0) {
+                alert("Nessun dato da esportare!");
+                return;
+            }
+            const primaData = rows[0].data;
+            const ultimaData = rows[rows.length - 1].data;
+            let titolo = "Storico Spese";
+            if (tipo === "settimana") {
+                const dataFiltro = document.getElementById("search-week-date").value;
+                titolo = `Storico Spese - Settimana del ${formatData(dataFiltro)}`;
+            } else if (tipo === "mese") {
+                const meseAnno = document.getElementById("search-month").value;
+                titolo = `Storico Spese - Mese ${meseAnno}`;
+            }
+            doc.setFontSize(18);
+            doc.text(titolo, 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Periodo: dal ${primaData} al ${ultimaData}`, 14, 30);
+            const columns = ["Data", "Entrate", "Uscite", "Note"];
+            const data = rows.map((row) => [row.data, row.entrate.toFixed(2), row.uscite.toFixed(2), row.note]);
+            doc.autoTable({
+                head: [columns],
+                body: data,
+                startY: 40,
+                margin: { top: 10 },
+                theme: "grid",
+            });
+            const finalY = doc.lastAutoTable.finalY || 40;
+            const entrateTot = rows.reduce((sum, item) => sum + item.entrate, 0);
+            const usciteTot = rows.reduce((sum, item) => sum + item.uscite, 0);
+            const fondoCassa = entrateTot - usciteTot;
+            doc.setFontSize(12);
+            doc.setTextColor(76, 175, 80);
+            doc.text(`Entrate: ${entrateTot.toFixed(2)}`, 14, finalY + 15);
+            doc.setTextColor(244, 67, 54);
+            doc.text(`Uscite: ${usciteTot.toFixed(2)}`, 14, finalY + 22);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Fondo Cassa: ${fondoCassa.toFixed(2)}`, 14, finalY + 29);
+            doc.save(`storico_spese_${tipo}.pdf`);
+        }
+        function esportaExcel(tipo) {
+            const rows = filtraDatiPerEsportazione(tipo);
+            if (rows.length === 0) {
+                alert("Nessun dato da esportare!");
+                return;
+            }
+            const entrateTot = rows.reduce((sum, item) => sum + item.entrate, 0);
+            const usciteTot = rows.reduce((sum, item) => sum + item.uscite, 0);
+            const fondoCassa = entrateTot - usciteTot;
+            const ws_data = [
+                ["Data", "Entrate", "Uscite", "Note"],
+                ...rows.map((row) => [row.data, parseFloat(row.entrate.toFixed(2)), parseFloat(row.uscite.toFixed(2)), row.note]),
+                [],
+                ["Riepilogo"],
+                ["Entrate:", entrateTot.toFixed(2)],
+                ["Uscite:", usciteTot.toFixed(2)],
+                ["Fondo Cassa:", fondoCassa.toFixed(2)],
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Storico Spese");
+            XLSX.writeFile(wb, `storico_spese_${tipo}.xlsx`);
+        }
+        function filtraDatiPerEsportazione(tipo) {
+            const rows = [];
+            const dataFiltro = document.getElementById("search-week-date").value;
+            const meseFiltro = document.getElementById("search-month").value;
+            storicoDati.forEach((item) => {
+                let include = false;
+                if (tipo === "all") {
+                    include = true;
+                } else {
+                    const dataParts = item.data.split("-");
+                    const dataCorrente = new Date(dataParts[2], dataParts[1] - 1, dataParts[0]);
+                    if (tipo === "settimana" && dataFiltro) {
+                        const dataFiltroObj = new Date(dataFiltro);
+                        const dataFiltroWeek = getWeekNumber(dataFiltroObj);
+                        include = getWeekNumber(dataCorrente) === dataFiltroWeek && dataCorrente.getFullYear() === dataFiltroObj.getFullYear();
+                    } else if (tipo === "mese" && meseFiltro) {
+                        const [mese, anno] = meseFiltro.split("/");
+                        if (mese && anno) {
+                            include = dataParts[1] == mese && dataParts[2] == anno;
+                        }
+                    }
+                }
+                if (include) {
+                    rows.push(item);
+                }
+            });
+            return rows;
+        }
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+            return weekNo;
+        }
+        function cercaDatiFiltrati() {
+            const dataFiltro = document.getElementById("search-week-date").value;
+            const meseFiltro = document.getElementById("search-month").value;
+            const risultatiContainer = document.getElementById("risultati-ricerca");
+            const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
+            risultatiTBody.innerHTML = "";
+            let datiFiltratiConIndice = [];
+            if (dataFiltro) {
+                datiFiltratiConIndice = filtraDatiConIndicePerSettimana(dataFiltro);
+            } else if (meseFiltro) {
+                datiFiltratiConIndice = filtraDatiConIndicePerMese(meseFiltro);
+            } else {
+                alert("Inserisci una data per la settimana o un mese/anno per la ricerca.");
+                risultatiContainer.style.display = "none";
+                return;
+            }
+            if (datiFiltratiConIndice.length === 0) {
+                risultatiTBody.innerHTML = '<tr><td colspan="5">Nessun dato trovato per i criteri di ricerca.</td></tr>';
+                aggiornaRiepilogoRicerca(0, 0);
+            } else {
+                datiFiltratiConIndice.forEach((item) => {
+                    const newRow = risultatiTBody.insertRow();
+                    newRow.innerHTML = `
+                        <td><input type="checkbox" class="seleziona-voce" data-original-index="${item.originalIndex}" /></td>
+                        <td>${item.data}</td>
+                        <td>${item.entrate.toFixed(2)}</td>
+                        <td>${item.uscite.toFixed(2)}</td>
+                        <td>${item.note}</td>
+                    `;
+                });
+                const entrateTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.entrate, 0);
+                const usciteTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.uscite, 0);
+                aggiornaRiepilogoRicerca(entrateTot, usciteTot);
+            }
+            risultatiContainer.style.display = "block";
+        }
+        function filtraDatiConIndicePerSettimana(dataFiltro) {
+            const datiFiltrati = [];
+            if (!dataFiltro) return [];
+            const dataFiltroObj = new Date(dataFiltro + "T00:00:00");
+            const giornoSettimana = dataFiltroObj.getDay();
+            const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
+            const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
+            inizioSettimana.setHours(0, 0, 0, 0);
+            const fineSettimana = new Date(inizioSettimana);
+            fineSettimana.setDate(inizioSettimana.getDate() + 6);
+            fineSettimana.setHours(23, 59, 59, 999);
+            storicoDati.forEach((item, index) => {
+                const dataParts = item.data.split("-");
+                const dataCorrente = new Date(`${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`);
+                if (dataCorrente >= inizioSettimana && dataCorrente <= fineSettimana) {
+                    datiFiltrati.push({ ...item, originalIndex: index });
+                }
+            });
+            return datiFiltrati;
+        }
+        function filtraDatiConIndicePerMese(meseFiltro) {
+            const [mese, anno] = meseFiltro.split("/");
+            if (!mese || !anno) {
+                return [];
+            }
+            const datiFiltrati = [];
+            storicoDati.forEach((item, index) => {
+                const dataParts = item.data.split("-");
+                if (dataParts[1] == mese && dataParts[2] == anno) {
+                    datiFiltrati.push({ ...item, originalIndex: index });
+                }
+            });
+            return datiFiltrati;
+        }
+        function aggiornaRiepilogoRicerca(entrate, uscite) {
+            document.getElementById("search-sum-entrate").textContent = `Entrate: ${entrate.toFixed(2)}`;
+            document.getElementById("search-sum-uscite").textContent = `Uscite: ${uscite.toFixed(2)}`;
+            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa: ${(entrate - uscite).toFixed(2)}`;
+        }
+        function cancellaDatiSelezionati() {
+            const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
+            const righeSelezionate = Array.from(risultatiTBody.querySelectorAll("input.seleziona-voce:checked"));
+            if (righeSelezionate.length === 0) {
+                alert("Seleziona almeno una voce da cancellare.");
+                return;
+            }
+            if (confirm(`Sei sicuro di voler cancellare ${righeSelezionate.length} voci? Questa azione non può essere annullata!`)) {
+                const indiciDaCancellare = righeSelezionate.map((checkbox) => parseInt(checkbox.dataset.original-index, 10)).filter((index) => !isNaN(index));
+                indiciDaCancellare.sort((a, b) => b - a);
+                indiciDaCancellare.forEach((index) => {
+                    storicoDati.splice(index, 1);
+                });
+                salvaDatiOnline();
+                ricaricaTabellaPrincipale();
+                aggiornaRiepilogo();
+                pulisciRisultati();
+                alert(`${indiciDaCancellare.length} voci sono state cancellate con successo.`);
+            }
+        }
+        function pulisciRisultati() {
+            document.getElementById("search-week-date").value = "";
+            document.getElementById("search-month").value = "";
+            document.getElementById("risultati-ricerca").style.display = "none";
+        }
+    </script>
 </body>
 </html>

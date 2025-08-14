@@ -88,9 +88,7 @@
         .button-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 20px;
-            justify-content: center;
+            gap: 150px;
         }
         button {
             border: none;
@@ -141,9 +139,17 @@
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
             display: flex;
+            flex-wrap: wrap;
             gap: 20px;
-            justify-content: center;
+            justify-content: flex-start;
             font-size: 1.05rem;
+        }
+        .riepilogo-storico {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px; /* Aumentato lo spazio */
+            justify-content: flex-start;
+            align-items: center;
         }
         .table-scroll {
             overflow-y: auto;
@@ -165,8 +171,8 @@
             table {
                 font-size: 0.85rem;
             }
-            .button-group {
-                justify-content: flex-start;
+            .button-group, .riepilogo-storico {
+                justify-content: center;
             }
         }
     </style>
@@ -203,12 +209,20 @@
                 <button class="accent" onclick="aggiungiVoce()"><i class="fa-solid fa-plus"></i> Aggiungi Dati</button>
             </div>
         </div>
-        <div class="button-group">
+        <div class="button-group" style="margin-bottom: 20px;">
             <button class="accent" onclick="salvaDatiOnline()"><i class="fa-solid fa-cloud-upload-alt"></i> Salva su Firebase</button>
             <button class="info" onclick="caricaDatiOnline()"><i class="fa-solid fa-cloud-download-alt"></i> Carica da Firebase</button>
         </div>
         <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
-        <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye-slash"></i> Nascondi Storico</button>
+        <div class="summary riepilogo-storico" id="summary-main">
+            <span class="green" id="sum-entrate-main">Entrate: 0</span>
+            <span class="red" id="sum-uscite-main">Uscite: 0</span>
+            <span id="sum-fondo-main">Fondo Cassa Attuale: 0</span>
+            <div id="date-range-main" style="margin-left: auto;">
+                Periodo: dal ... al ...
+            </div>
+        </div>
+        <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye"></i> Mostra Storico</button>
         <div id="storico-container">
             <div class="table-scroll">
                 <table id="storico-table">
@@ -223,11 +237,6 @@
                     </thead>
                     <tbody></tbody>
                 </table>
-            </div>
-            <div class="summary" id="summary">
-                <span class="green" id="sum-entrate">Entrate: 0</span>
-                <span class="red" id="sum-uscite">Uscite: 0</span>
-                <span id="sum-fondo">Fondo Cassa: 0</span>
             </div>
         </div>
         <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
@@ -272,7 +281,7 @@
                 <div class="summary" id="search-summary">
                     <span class="green" id="search-sum-entrate">Entrate: 0</span>
                     <span class="red" id="search-sum-uscite">Uscite: 0</span>
-                    <span id="search-sum-fondo">Fondo Cassa: 0</span>
+                    <span id="search-sum-fondo">Fondo Cassa Attuale: 0</span>
                 </div>
                 <div style="margin-top: 12px">
                     <button class="danger" onclick="cancellaDatiSelezionati()">Cancella Voci Selezionate</button>
@@ -298,6 +307,14 @@
         const dbRef = database.ref("/spese");
         document.addEventListener("DOMContentLoaded", () => {
             caricaDatiOnline();
+            const storicoContainer = document.getElementById("storico-container");
+            const toggleButton = document.querySelector('button[onclick="toggleStorico()"]');
+            storicoContainer.style.display = "none";
+            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i> Mostra Storico';
+            const dataInput = document.getElementById("data");
+            if (dataInput) {
+                dataInput.valueAsDate = new Date();
+            }
         });
         async function salvaDatiOnline() {
             try {
@@ -337,13 +354,13 @@
         }
         function toggleStorico() {
             const c = document.getElementById("storico-container");
-            const btn = document.querySelector(".warning i");
+            const btn = document.querySelector('button[onclick="toggleStorico()"]');
             if (c.style.display === "none") {
                 c.style.display = "block";
-                btn.className = "fa-solid fa-eye-slash";
+                btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Nascondi Storico';
             } else {
                 c.style.display = "none";
-                btn.className = "fa-solid fa-eye";
+                btn.innerHTML = '<i class="fa-solid fa-eye"></i> Mostra Storico';
             }
         }
         function formatData(dateString) {
@@ -352,6 +369,10 @@
             const mese = (data.getMonth() + 1).toString().padStart(2, "0");
             const anno = data.getFullYear();
             return `${giorno}-${mese}-${anno}`;
+        }
+        function parseData(dateString) {
+            const [giorno, mese, anno] = dateString.split('-');
+            return new Date(`${anno}-${mese}-${giorno}`);
         }
         function toggleAltraNota() {
             const noteSelect = document.getElementById("note-select");
@@ -431,27 +452,46 @@
             aggiornaRiepilogo();
         }
         function aggiornaRiepilogo() {
-            let entrateTot = 0,
-                usciteTot = 0;
-            storicoDati.forEach((item) => {
-                entrateTot += item.entrate;
-                usciteTot += item.uscite;
-            });
-            document.getElementById("sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
-            document.getElementById("sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
-            document.getElementById("sum-fondo").textContent = `Fondo Cassa: ${(entrateTot - usciteTot).toFixed(2)}`;
+            let entrateTot = 0, usciteTot = 0;
+            let primoInserimento = "N/A", ultimoInserimento = "N/A";
+            
+            if (storicoDati.length > 0) {
+                const datiOrdinati = [...storicoDati].sort((a, b) => parseData(a.data) - parseData(b.data));
+                primoInserimento = datiOrdinati[0].data;
+                ultimoInserimento = datiOrdinati[datiOrdinati.length - 1].data;
+                
+                storicoDati.forEach((item) => {
+                    entrateTot += item.entrate;
+                    usciteTot += item.uscite;
+                });
+            }
+            
+            document.getElementById("sum-entrate-main").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
+            document.getElementById("sum-uscite-main").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
+            document.getElementById("sum-fondo-main").textContent = `Fondo Cassa Attuale: ${(entrateTot - usciteTot).toFixed(2)}`;
+            document.getElementById("date-range-main").textContent = `Periodo: dal ${primoInserimento} al ${ultimoInserimento}`;
         }
         function ricaricaTabellaPrincipale() {
             const tableBody = document.getElementById("storico-table").querySelector("tbody");
             tableBody.innerHTML = "";
-            const reversedData = [...storicoDati].reverse();
-            reversedData.forEach((item, index) => {
-                const originalIndex = storicoDati.length - 1 - index;
+            const datiOrdinati = [...storicoDati];
+            datiOrdinati.sort((a, b) => {
+                const dataA = a.data.split('-').reverse().join('-');
+                const dataB = b.data.split('-').reverse().join('-');
+                return new Date(dataB) - new Date(dataA);
+            });
+            datiOrdinati.forEach((item, index) => {
+                const originalIndex = storicoDati.findIndex(d =>
+                    d.data === item.data &&
+                    d.entrate === item.entrate &&
+                    d.uscite === item.uscite &&
+                    d.note === item.note
+                );
                 const newRow = tableBody.insertRow();
                 newRow.innerHTML = `
                     <td>${item.data}</td>
-                    <td>${item.entrate.toFixed(2)}</td>
-                    <td>${item.uscite.toFixed(2)}</td>
+                    <td class="green">${item.entrate.toFixed(2)}</td>
+                    <td class="red">${item.uscite.toFixed(2)}</td>
                     <td>${item.note}</td>
                     <td>
                         <button class="accent" onclick="modificaVoce(${originalIndex})">Modifica</button>
@@ -463,13 +503,13 @@
         function esportaPDF(tipo) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const rows = filtraDatiPerEsportazione(tipo);
-            if (rows.length === 0) {
+            const { datiFiltrati, fondoPrecedente } = filtraDatiPerEsportazione(tipo);
+            if (datiFiltrati.length === 0) {
                 alert("Nessun dato da esportare!");
                 return;
             }
-            const primaData = rows[0].data;
-            const ultimaData = rows[rows.length - 1].data;
+            const primaData = datiFiltrati[0].data;
+            const ultimaData = datiFiltrati[datiFiltrati.length - 1].data;
             let titolo = "Storico Spese";
             if (tipo === "settimana") {
                 const dataFiltro = document.getElementById("search-week-date").value;
@@ -483,44 +523,55 @@
             doc.setFontSize(12);
             doc.text(`Periodo: dal ${primaData} al ${ultimaData}`, 14, 30);
             const columns = ["Data", "Entrate", "Uscite", "Note"];
-            const data = rows.map((row) => [row.data, row.entrate.toFixed(2), row.uscite.toFixed(2), row.note]);
+            const data = datiFiltrati.map((row) => [row.data, row.entrate.toFixed(2), row.uscite.toFixed(2), row.note]);
             doc.autoTable({
                 head: [columns],
                 body: data,
                 startY: 40,
                 margin: { top: 10 },
                 theme: "grid",
+                didParseCell: (hookData) => {
+                    if (hookData.section === 'body') {
+                        if (hookData.column.index === 1) {
+                            hookData.cell.styles.textColor = [76, 175, 80]; // Verde
+                        } else if (hookData.column.index === 2) {
+                            hookData.cell.styles.textColor = [244, 67, 54]; // Rosso
+                        }
+                    }
+                },
             });
             const finalY = doc.lastAutoTable.finalY || 40;
-            const entrateTot = rows.reduce((sum, item) => sum + item.entrate, 0);
-            const usciteTot = rows.reduce((sum, item) => sum + item.uscite, 0);
-            const fondoCassa = entrateTot - usciteTot;
+            const entrateTot = datiFiltrati.reduce((sum, item) => sum + item.entrate, 0);
+            const usciteTot = datiFiltrati.reduce((sum, item) => sum + item.uscite, 0);
+            const fondoCassaPeriodo = entrateTot - usciteTot;
+            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
             doc.setFontSize(12);
             doc.setTextColor(76, 175, 80);
             doc.text(`Entrate: ${entrateTot.toFixed(2)}`, 14, finalY + 15);
             doc.setTextColor(244, 67, 54);
             doc.text(`Uscite: ${usciteTot.toFixed(2)}`, 14, finalY + 22);
             doc.setTextColor(0, 0, 0);
-            doc.text(`Fondo Cassa: ${fondoCassa.toFixed(2)}`, 14, finalY + 29);
+            doc.text(`Fondo Cassa Attuale: ${fondoTotale.toFixed(2)}`, 14, finalY + 29);
             doc.save(`storico_spese_${tipo}.pdf`);
         }
         function esportaExcel(tipo) {
-            const rows = filtraDatiPerEsportazione(tipo);
-            if (rows.length === 0) {
+            const { datiFiltrati, fondoPrecedente } = filtraDatiPerEsportazione(tipo);
+            if (datiFiltrati.length === 0) {
                 alert("Nessun dato da esportare!");
                 return;
             }
-            const entrateTot = rows.reduce((sum, item) => sum + item.entrate, 0);
-            const usciteTot = rows.reduce((sum, item) => sum + item.uscite, 0);
-            const fondoCassa = entrateTot - usciteTot;
+            const entrateTot = datiFiltrati.reduce((sum, item) => sum + item.entrate, 0);
+            const usciteTot = datiFiltrati.reduce((sum, item) => sum + item.uscite, 0);
+            const fondoCassaPeriodo = entrateTot - usciteTot;
+            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
             const ws_data = [
                 ["Data", "Entrate", "Uscite", "Note"],
-                ...rows.map((row) => [row.data, parseFloat(row.entrate.toFixed(2)), parseFloat(row.uscite.toFixed(2)), row.note]),
+                ...datiFiltrati.map((row) => [row.data, parseFloat(row.entrate.toFixed(2)), parseFloat(row.uscite.toFixed(2)), row.note]),
                 [],
                 ["Riepilogo"],
-                ["Entrate:", entrateTot.toFixed(2)],
-                ["Uscite:", usciteTot.toFixed(2)],
-                ["Fondo Cassa:", fondoCassa.toFixed(2)],
+                ["Entrate Totali:", entrateTot.toFixed(2)],
+                ["Uscite Totali:", usciteTot.toFixed(2)],
+                ["Fondo Cassa Attuale:", fondoTotale.toFixed(2)],
             ];
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
             const wb = XLSX.utils.book_new();
@@ -528,39 +579,22 @@
             XLSX.writeFile(wb, `storico_spese_${tipo}.xlsx`);
         }
         function filtraDatiPerEsportazione(tipo) {
-            const rows = [];
+            let datiFiltrati = [];
+            let fondoPrecedente = 0;
             const dataFiltro = document.getElementById("search-week-date").value;
             const meseFiltro = document.getElementById("search-month").value;
-            storicoDati.forEach((item) => {
-                let include = false;
-                if (tipo === "all") {
-                    include = true;
-                } else {
-                    const dataParts = item.data.split("-");
-                    const dataCorrente = new Date(dataParts[2], dataParts[1] - 1, dataParts[0]);
-                    if (tipo === "settimana" && dataFiltro) {
-                        const dataFiltroObj = new Date(dataFiltro);
-                        const dataFiltroWeek = getWeekNumber(dataFiltroObj);
-                        include = getWeekNumber(dataCorrente) === dataFiltroWeek && dataCorrente.getFullYear() === dataFiltroObj.getFullYear();
-                    } else if (tipo === "mese" && meseFiltro) {
-                        const [mese, anno] = meseFiltro.split("/");
-                        if (mese && anno) {
-                            include = dataParts[1] == mese && dataParts[2] == anno;
-                        }
-                    }
-                }
-                if (include) {
-                    rows.push(item);
-                }
-            });
-            return rows;
-        }
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
-            return weekNo;
+            if (tipo === "settimana" && dataFiltro) {
+                const result = filtraDatiConIndicePerSettimana(dataFiltro);
+                datiFiltrati = result.datiFiltrati;
+                fondoPrecedente = result.fondoPrecedente;
+            } else if (tipo === "mese" && meseFiltro) {
+                const result = filtraDatiConIndicePerMese(meseFiltro);
+                datiFiltrati = result.datiFiltrati;
+                fondoPrecedente = result.fondoPrecedente;
+            } else {
+                return { datiFiltrati: [], fondoPrecedente: 0 };
+            }
+            return { datiFiltrati, fondoPrecedente };
         }
         function cercaDatiFiltrati() {
             const dataFiltro = document.getElementById("search-week-date").value;
@@ -569,10 +603,15 @@
             const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
             risultatiTBody.innerHTML = "";
             let datiFiltratiConIndice = [];
+            let fondoPrecedente = 0;
             if (dataFiltro) {
-                datiFiltratiConIndice = filtraDatiConIndicePerSettimana(dataFiltro);
+                const result = filtraDatiConIndicePerSettimana(dataFiltro);
+                datiFiltratiConIndice = result.datiFiltrati;
+                fondoPrecedente = result.fondoPrecedente;
             } else if (meseFiltro) {
-                datiFiltratiConIndice = filtraDatiConIndicePerMese(meseFiltro);
+                const result = filtraDatiConIndicePerMese(meseFiltro);
+                datiFiltratiConIndice = result.datiFiltrati;
+                fondoPrecedente = result.fondoPrecedente;
             } else {
                 alert("Inserisci una data per la settimana o un mese/anno per la ricerca.");
                 risultatiContainer.style.display = "none";
@@ -580,62 +619,85 @@
             }
             if (datiFiltratiConIndice.length === 0) {
                 risultatiTBody.innerHTML = '<tr><td colspan="5">Nessun dato trovato per i criteri di ricerca.</td></tr>';
-                aggiornaRiepilogoRicerca(0, 0);
+                aggiornaRiepilogoRicerca(0, 0, fondoPrecedente);
             } else {
                 datiFiltratiConIndice.forEach((item) => {
                     const newRow = risultatiTBody.insertRow();
                     newRow.innerHTML = `
                         <td><input type="checkbox" class="seleziona-voce" data-original-index="${item.originalIndex}" /></td>
                         <td>${item.data}</td>
-                        <td>${item.entrate.toFixed(2)}</td>
-                        <td>${item.uscite.toFixed(2)}</td>
+                        <td class="green">${item.entrate.toFixed(2)}</td>
+                        <td class="red">${item.uscite.toFixed(2)}</td>
                         <td>${item.note}</td>
                     `;
                 });
                 const entrateTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.entrate, 0);
                 const usciteTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.uscite, 0);
-                aggiornaRiepilogoRicerca(entrateTot, usciteTot);
+                aggiornaRiepilogoRicerca(entrateTot, usciteTot, fondoPrecedente);
             }
             risultatiContainer.style.display = "block";
         }
         function filtraDatiConIndicePerSettimana(dataFiltro) {
             const datiFiltrati = [];
-            if (!dataFiltro) return [];
+            if (!dataFiltro) return { datiFiltrati: [], fondoPrecedente: 0 };
             const dataFiltroObj = new Date(dataFiltro + "T00:00:00");
             const giornoSettimana = dataFiltroObj.getDay();
             const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
             const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
             inizioSettimana.setHours(0, 0, 0, 0);
-            const fineSettimana = new Date(inizioSettimana);
-            fineSettimana.setDate(inizioSettimana.getDate() + 6);
-            fineSettimana.setHours(23, 59, 59, 999);
+            let fondoPrecedente = 0;
+            const datiOrdinati = [...storicoDati].sort((a, b) => {
+                const dataA = parseData(a.data);
+                const dataB = parseData(b.data);
+                return dataA - dataB;
+            });
+            datiOrdinati.forEach((item, index) => {
+                const dataCorrente = parseData(item.data);
+                if (dataCorrente < inizioSettimana) {
+                    fondoPrecedente += item.entrate - item.uscite;
+                }
+            });
             storicoDati.forEach((item, index) => {
-                const dataParts = item.data.split("-");
-                const dataCorrente = new Date(`${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`);
-                if (dataCorrente >= inizioSettimana && dataCorrente <= fineSettimana) {
+                const dataCorrente = parseData(item.data);
+                if (dataCorrente >= inizioSettimana && dataCorrente <= new Date(inizioSettimana.getTime() + 6 * 24 * 60 * 60 * 1000)) {
                     datiFiltrati.push({ ...item, originalIndex: index });
                 }
             });
-            return datiFiltrati;
+            return { datiFiltrati, fondoPrecedente };
         }
         function filtraDatiConIndicePerMese(meseFiltro) {
             const [mese, anno] = meseFiltro.split("/");
             if (!mese || !anno) {
-                return [];
+                return { datiFiltrati: [], fondoPrecedente: 0 };
             }
+            const inizioMese = new Date(anno, mese - 1, 1);
+            let fondoPrecedente = 0;
             const datiFiltrati = [];
+            const datiOrdinati = [...storicoDati].sort((a, b) => {
+                const dataA = parseData(a.data);
+                const dataB = parseData(b.data);
+                return dataA - dataB;
+            });
+            datiOrdinati.forEach((item, index) => {
+                const dataCorrente = parseData(item.data);
+                if (dataCorrente < inizioMese) {
+                    fondoPrecedente += item.entrate - item.uscite;
+                }
+            });
             storicoDati.forEach((item, index) => {
                 const dataParts = item.data.split("-");
                 if (dataParts[1] == mese && dataParts[2] == anno) {
                     datiFiltrati.push({ ...item, originalIndex: index });
                 }
             });
-            return datiFiltrati;
+            return { datiFiltrati, fondoPrecedente };
         }
-        function aggiornaRiepilogoRicerca(entrate, uscite) {
+        function aggiornaRiepilogoRicerca(entrate, uscite, fondoPrecedente = 0) {
+            const fondoCassaPeriodo = entrate - uscite;
+            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
             document.getElementById("search-sum-entrate").textContent = `Entrate: ${entrate.toFixed(2)}`;
             document.getElementById("search-sum-uscite").textContent = `Uscite: ${uscite.toFixed(2)}`;
-            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa: ${(entrate - uscite).toFixed(2)}`;
+            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa Attuale: ${fondoTotale.toFixed(2)}`;
         }
         function cancellaDatiSelezionati() {
             const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
@@ -645,7 +707,7 @@
                 return;
             }
             if (confirm(`Sei sicuro di voler cancellare ${righeSelezionate.length} voci? Questa azione non può essere annullata!`)) {
-                const indiciDaCancellare = righeSelezionate.map((checkbox) => parseInt(checkbox.dataset.original-index, 10)).filter((index) => !isNaN(index));
+                const indiciDaCancellare = righeSelezionate.map((checkbox) => parseInt(checkbox.dataset.originalIndex, 10)).filter((index) => !isNaN(index));
                 indiciDaCancellare.sort((a, b) => b - a);
                 indiciDaCancellare.forEach((index) => {
                     storicoDati.splice(index, 1);

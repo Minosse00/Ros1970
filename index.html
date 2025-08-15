@@ -88,7 +88,8 @@
         .button-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 150px;
+            gap: 15px; /* Spazio ridotto per schermi piccoli */
+            justify-content: center; /* Centra i bottoni */
         }
         button {
             border: none;
@@ -147,19 +148,21 @@
         .riepilogo-storico {
             display: flex;
             flex-wrap: wrap;
-            gap: 30px; /* Aumentato lo spazio */
+            gap: 20px;
             justify-content: flex-start;
             align-items: center;
         }
         .table-scroll {
             overflow-y: auto;
             max-height: 400px;
-            overflow-x: auto;
+            overflow-x: auto; /* Permette lo scorrimento orizzontale su schermi piccoli */
         }
         .glow {
             box-shadow: 0 0 8px 4px #2196F3;
             transition: box-shadow 0.5s ease-in-out;
         }
+
+        /* Media Query per dispositivi mobili (schermi fino a 768px di larghezza) */
         @media (max-width: 768px) {
             .form-section {
                 flex-direction: column;
@@ -172,7 +175,9 @@
                 font-size: 0.85rem;
             }
             .button-group, .riepilogo-storico {
-                justify-content: center;
+                flex-direction: column; /* I bottoni e il riepilogo si dispongono in colonna */
+                gap: 10px;
+                align-items: stretch;
             }
         }
     </style>
@@ -726,7 +731,6 @@
         // Nuova funzione per impostare la data odierna nei campi di ricerca
         function impostaDataRicerca() {
             const today = new Date();
-            // Imposta la data odierna per la ricerca per settimana
             const searchWeekDateInput = document.getElementById("search-week-date");
             const year = today.getFullYear();
             const month = (today.getMonth() + 1).toString().padStart(2, '0');
@@ -734,7 +738,6 @@
             if (searchWeekDateInput) {
                 searchWeekDateInput.value = `${year}-${month}-${day}`;
             }
-            // Imposta mese e anno odierni per la ricerca per mese
             const searchMonthInput = document.getElementById("search-month");
             if (searchMonthInput) {
                 searchMonthInput.value = `${month}/${year}`;

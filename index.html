@@ -177,7 +177,7 @@
         }
     </style>
 </head>
-<body>
+<body onload="impostaDataRicerca()">
     <header>Gestione Spese</header>
     <button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
     <div class="container">
@@ -703,27 +703,44 @@
             const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
             const righeSelezionate = Array.from(risultatiTBody.querySelectorAll("input.seleziona-voce:checked"));
             if (righeSelezionate.length === 0) {
-                alert("Seleziona almeno una voce da cancellare.");
+                alert("Nessuna voce selezionata da cancellare.");
                 return;
             }
-            if (confirm(`Sei sicuro di voler cancellare ${righeSelezionate.length} voci? Questa azione non può essere annullata!`)) {
-                const indiciDaCancellare = righeSelezionate.map((checkbox) => parseInt(checkbox.dataset.originalIndex, 10)).filter((index) => !isNaN(index));
-                indiciDaCancellare.sort((a, b) => b - a);
-                indiciDaCancellare.forEach((index) => {
+            if (confirm(`Sei sicuro di voler cancellare ${righeSelezionate.length} voce/i?`)) {
+                const indiciDaCancellare = righeSelezionate.map(checkbox => parseInt(checkbox.dataset.originalIndex, 10)).sort((a, b) => b - a);
+                indiciDaCancellare.forEach(index => {
                     storicoDati.splice(index, 1);
                 });
                 salvaDatiOnline();
-                ricaricaTabellaPrincipale();
-                aggiornaRiepilogo();
+                caricaDatiOnline();
                 pulisciRisultati();
-                alert(`${indiciDaCancellare.length} voci sono state cancellate con successo.`);
             }
         }
         function pulisciRisultati() {
+            document.getElementById("risultati-ricerca").style.display = "none";
             document.getElementById("search-week-date").value = "";
             document.getElementById("search-month").value = "";
-            document.getElementById("risultati-ricerca").style.display = "none";
+            impostaDataRicerca();
+        }
+        
+        // Nuova funzione per impostare la data odierna nei campi di ricerca
+        function impostaDataRicerca() {
+            const today = new Date();
+            // Imposta la data odierna per la ricerca per settimana
+            const searchWeekDateInput = document.getElementById("search-week-date");
+            const year = today.getFullYear();
+            const month = (today.getMonth() + 1).toString().padStart(2, '0');
+            const day = today.getDate().toString().padStart(2, '0');
+            if (searchWeekDateInput) {
+                searchWeekDateInput.value = `${year}-${month}-${day}`;
+            }
+            // Imposta mese e anno odierni per la ricerca per mese
+            const searchMonthInput = document.getElementById("search-month");
+            if (searchMonthInput) {
+                searchMonthInput.value = `${month}/${year}`;
+            }
         }
     </script>
 </body>
 </html>
+

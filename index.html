@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     <style>
@@ -18,6 +17,8 @@
             --text-light: #222222;
             --accent: #4CAF50;
             --danger: #f44336;
+            --warning: #FFC107;
+            --info: #2196F3;
         }
         body {
             font-family: Arial, sans-serif;
@@ -88,8 +89,8 @@
         .button-group {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px; /* Spazio ridotto per schermi piccoli */
-            justify-content: center; /* Centra i bottoni */
+            gap: 15px;
+            justify-content: center;
         }
         button {
             border: none;
@@ -109,11 +110,11 @@
             color: #fff;
         }
         .warning {
-            background-color: #FFC107;
+            background-color: var(--warning);
             color: #222;
         }
         .info {
-            background-color: #2196F3;
+            background-color: var(--info);
             color: #fff;
         }
         .theme-toggle {
@@ -155,14 +156,18 @@
         .table-scroll {
             overflow-y: auto;
             max-height: 400px;
-            overflow-x: auto; /* Permette lo scorrimento orizzontale su schermi piccoli */
+            overflow-x: auto;
         }
         .glow {
-            box-shadow: 0 0 8px 4px #2196F3;
+            box-shadow: 0 0 8px 4px var(--info);
             transition: box-shadow 0.5s ease-in-out;
         }
-
-        /* Media Query per dispositivi mobili (schermi fino a 768px di larghezza) */
+        .search-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+        }
         @media (max-width: 768px) {
             .form-section {
                 flex-direction: column;
@@ -174,15 +179,15 @@
             table {
                 font-size: 0.85rem;
             }
-            .button-group, .riepilogo-storico {
-                flex-direction: column; /* I bottoni e il riepilogo si dispongono in colonna */
+            .button-group, .riepilogo-storico, .search-buttons {
+                flex-direction: column;
                 gap: 10px;
                 align-items: stretch;
             }
         }
     </style>
 </head>
-<body onload="impostaDataRicerca()">
+<body onload="caricaDatiOnline(); impostaCampiRicerca()">
     <header>Gestione Spese</header>
     <button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
     <div class="container">
@@ -215,8 +220,8 @@
             </div>
         </div>
         <div class="button-group" style="margin-bottom: 20px;">
-            <button class="accent" onclick="salvaDatiOnline()"><i class="fa-solid fa-cloud-upload-alt"></i> Salva su Firebase</button>
-            <button class="info" onclick="caricaDatiOnline()"><i class="fa-solid fa-cloud-download-alt"></i> Carica da Firebase</button>
+            <button class="accent" onclick="salvaDatiOnline()" disabled><i class="fa-solid fa-cloud-upload-alt"></i> Salva Forzato (Non necessario)</button>
+            <button class="info" onclick="caricaDatiOnline()"><i class="fa-solid fa-cloud-download-alt"></i> Carica Dati</button>
         </div>
         <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
         <div class="summary riepilogo-storico" id="summary-main">
@@ -228,7 +233,7 @@
             </div>
         </div>
         <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye"></i> Mostra Storico</button>
-        <div id="storico-container">
+        <div id="storico-container" style="display: none;">
             <div class="table-scroll">
                 <table id="storico-table">
                     <thead>
@@ -257,15 +262,20 @@
                     <input type="text" id="search-month" placeholder="MM/YYYY" />
                 </div>
                 <div>
-                    <button class="info" onclick="cercaDatiFiltrati()">Cerca</button>
-                    <button class="warning" onclick="pulisciRisultati()">Pulisci Risultati</button>
+                    <label for="search-15-13">Mese/Anno (15-13)</label>
+                    <input type="text" id="search-15-13" placeholder="MM/YYYY" />
                 </div>
             </div>
+            <div class="search-buttons" style="margin-top: 12px; justify-content: flex-start">
+                <button class="info" onclick="cercaPerPeriodo('week')"><i class="fa-solid fa-calendar-week"></i> Cerca per Settimana</button>
+                <button class="info" onclick="cercaPerPeriodo('month')"><i class="fa-solid fa-calendar-alt"></i> Cerca per Mese</button>
+                <button class="info" onclick="cercaPerPeriodo('15-13')"><i class="fa-solid fa-calendar-day"></i> Cerca 15-13</button>
+                <button class="warning" onclick="resettaRicerca()"><i class="fa-solid fa-redo"></i> Resetta Ricerca</button>
+            </div>
             <div class="button-group" style="margin-top: 12px; justify-content: flex-start">
-                <button class="danger" onclick="esportaPDF('settimana')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
-                <button class="danger" onclick="esportaPDF('mese')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
-                <button class="accent" onclick="esportaExcel('settimana')"><i class="fa-solid fa-file-excel"></i> Esporta Settimana (XLSX)</button>
-                <button class="accent" onclick="esportaExcel('mese')"><i class="fa-solid fa-file-excel"></i> Esporta Mese (XLSX)</button>
+                <button class="danger" onclick="esportaPDF('week')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
+                <button class="danger" onclick="esportaPDF('month')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
+                <button class="danger" onclick="esportaPDF('15-13')"><i class="fa-solid fa-file-pdf"></i> Esporta 15-13 (PDF)</button>
             </div>
             <div id="risultati-ricerca" style="display: none; margin-top: 20px">
                 <h4>Risultati Trovati</h4>
@@ -289,58 +299,66 @@
                     <span id="search-sum-fondo">Fondo Cassa Attuale: 0</span>
                 </div>
                 <div style="margin-top: 12px">
-                    <button class="danger" onclick="cancellaDatiSelezionati()">Cancella Voci Selezionate</button>
+                    <button class="danger" onclick="cancellaDatiSelezionati()"><i class="fa-solid fa-trash"></i> Cancella Voci Selezionate</button>
                 </div>
             </div>
         </div>
     </div>
     <script>
-        let storicoDati = [];
+        let storicoDati = {};
+        // Variabili globali aggiunte per l'esportazione PDF
+        let datiAttualiRicerca = []; 
+        let riepilogoAttualeRicerca = { entrate: 0, uscite: 0, fondoPrecedente: 0 };
+        let titoloPeriodoRicerca = "Ricerca Periodo";
+
+        // Ricorda di inserire le tue credenziali Firebase reali qui!
         const firebaseConfig = {
             apiKey: "AIzaSyCKf4B5Sr4chHiUw3xlfumk3Qzj7zF581U",
             authDomain: "gestione-spese-9a9fd.firebaseapp.com",
-            databaseURL: "https://gestione-spese-9a9fd-default-rtdb.firebaseio.com/",
+            databaseURL: "https://gestione-spese-9a9fd-default-rtdb.firebaseio.com",
             projectId: "gestione-spese-9a9fd",
             storageBucket: "gestione-spese-9a9fd.firebasestorage.app",
             messagingSenderId: "542317208533",
             appId: "1:542317208533:web:947f32ccddb4e5ed2c535c",
         };
+
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
+
         const database = firebase.database();
         const dbRef = database.ref("/spese");
+
         document.addEventListener("DOMContentLoaded", () => {
-            caricaDatiOnline();
-            const storicoContainer = document.getElementById("storico-container");
-            const toggleButton = document.querySelector('button[onclick="toggleStorico()"]');
-            storicoContainer.style.display = "none";
-            toggleButton.innerHTML = '<i class="fa-solid fa-eye"></i> Mostra Storico';
-            const dataInput = document.getElementById("data");
-            if (dataInput) {
-                dataInput.valueAsDate = new Date();
-            }
+            document.getElementById("data").valueAsDate = new Date();
         });
-        async function salvaDatiOnline() {
-            try {
-                await dbRef.set(storicoDati);
-                alert("Dati salvati su Firebase con successo!");
-            } catch (error) {
-                console.error("Errore nel salvataggio su Firebase:", error);
-                alert("Si è verificato un errore durante il salvataggio su Firebase.");
-            }
+
+        function impostaCampiRicerca() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = (today.getMonth() + 1).toString().padStart(2, '0');
+            document.getElementById("search-week-date").valueAsDate = today;
+            document.getElementById("search-month").value = `${month}/${year}`;
+            document.getElementById("search-15-13").value = `${month}/${year}`; 
         }
+
+        async function salvaDatiOnline() {
+            alert("Il salvataggio forzato non è più necessario, le modifiche sono sincrone.");
+        }
+
         async function caricaDatiOnline() {
             const btn = document.querySelector('button.info');
             btn.classList.add('glow');
             try {
                 const snapshot = await dbRef.once("value");
                 const data = snapshot.val();
+                
                 if (data) {
                     storicoDati = data;
                 } else {
-                    storicoDati = [];
+                    storicoDati = {};
                 }
+                
                 ricaricaTabellaPrincipale();
                 aggiornaRiepilogo();
             } catch (error) {
@@ -352,11 +370,13 @@
                 }, 1000);
             }
         }
+
         function toggleTheme() {
             document.body.classList.toggle("light-theme");
             const icon = document.querySelector(".theme-toggle i");
             icon.className = document.body.classList.contains("light-theme") ? "fa-solid fa-sun" : "fa-solid fa-moon";
         }
+
         function toggleStorico() {
             const c = document.getElementById("storico-container");
             const btn = document.querySelector('button[onclick="toggleStorico()"]');
@@ -368,6 +388,7 @@
                 btn.innerHTML = '<i class="fa-solid fa-eye"></i> Mostra Storico';
             }
         }
+
         function formatData(dateString) {
             const data = new Date(dateString);
             const giorno = data.getDate().toString().padStart(2, "0");
@@ -375,10 +396,13 @@
             const anno = data.getFullYear();
             return `${giorno}-${mese}-${anno}`;
         }
+
         function parseData(dateString) {
             const [giorno, mese, anno] = dateString.split('-');
-            return new Date(`${anno}-${mese}-${giorno}`);
+            // Usa il formato ISO YYYY-MM-DD per una corretta interpretazione della data
+            return new Date(`${anno}-${mese}-${giorno}T00:00:00`); 
         }
+
         function toggleAltraNota() {
             const noteSelect = document.getElementById("note-select");
             const altraNotaInput = document.getElementById("altra-nota");
@@ -388,56 +412,84 @@
                 altraNotaInput.style.display = "none";
             }
         }
+
+        // AGGIORNATO: Ignora i valori di entrate/uscite se sono pari a zero
         function aggiungiVoce() {
             const dataVal = document.getElementById("data").value;
-            const entrateVal = parseFloat(document.getElementById("entrate").value);
-            const usciteVal = parseFloat(document.getElementById("uscite").value);
+            // Assicuriamo che i valori siano numeri con precisione a 2 decimali
+            const entrateVal = parseFloat((parseFloat(document.getElementById("entrate").value) || 0).toFixed(2)); 
+            const usciteVal = parseFloat((parseFloat(document.getElementById("uscite").value) || 0).toFixed(2)); 
+
             const noteSelectVal = document.getElementById("note-select").value;
-            let noteVal = "";
-            if (noteSelectVal === "Altro") {
-                noteVal = document.getElementById("altra-nota").value || "-";
-            } else {
-                noteVal = noteSelectVal || "-";
-            }
-            if (!dataVal || isNaN(entrateVal) || isNaN(usciteVal) || (entrateVal <= 0 && usciteVal <= 0)) {
+            let noteVal = (noteSelectVal === "Altro") ? (document.getElementById("altra-nota").value || "-") : (noteSelectVal || "-");
+
+            if (!dataVal || (entrateVal <= 0 && usciteVal <= 0)) {
                 alert("Per favore, inserisci una data e almeno un valore valido per entrate o uscite.");
                 return;
             }
+
             const nuovaVoce = {
                 data: formatData(dataVal),
-                entrate: entrateVal,
-                uscite: usciteVal,
                 note: noteVal,
             };
-            storicoDati.push(nuovaVoce);
-            salvaDatiOnline();
-            ricaricaTabellaPrincipale();
-            document.getElementById("data").value = "";
-            document.getElementById("entrate").value = "0";
-            document.getElementById("uscite").value = "0";
+
+            // IGNORIAMO SE IL VALORE È ZERO
+            if (entrateVal > 0) {
+                nuovaVoce.entrate = entrateVal;
+            }
+            if (usciteVal > 0) {
+                nuovaVoce.uscite = usciteVal;
+            }
+
+            // Salva su Firebase con ID univoco
+            dbRef.push(nuovaVoce)
+                .then(() => {
+                    // Ricarica i dati per sincronizzare l'interfaccia
+                    caricaDatiOnline(); 
+                })
+                .catch(error => {
+                    console.error("Errore nell'aggiunta della voce:", error);
+                    alert("Si è verificato un errore durante l'aggiunta della voce.");
+                });
+            
+            // Resetta i campi di input
+            document.getElementById("data").valueAsDate = new Date();
+            document.getElementById("entrate").value = "0.00"; 
+            document.getElementById("uscite").value = "0.00";
             document.getElementById("note-select").value = "";
             document.getElementById("altra-nota").value = "";
             document.getElementById("altra-nota").style.display = "none";
-            aggiornaRiepilogo();
         }
-        function rimuoviVoce(index) {
+
+        function rimuoviVoce(key) {
             if (confirm("Sei sicuro di voler rimuovere questa voce?")) {
-                storicoDati.splice(index, 1);
-                salvaDatiOnline();
-                ricaricaTabellaPrincipale();
-                aggiornaRiepilogo();
+                dbRef.child(key).remove()
+                    .then(() => {
+                        delete storicoDati[key]; 
+                        ricaricaTabellaPrincipale();
+                        aggiornaRiepilogo();
+                    })
+                    .catch(error => {
+                        console.error("Errore nella rimozione della voce:", error);
+                    });
             }
         }
-        function modificaVoce(index) {
-            const itemToModify = storicoDati[index];
+        
+        function modificaVoce(key) {
+            const itemToModify = storicoDati[key];
             const dataParts = itemToModify.data.split("-");
-            const formattedDate = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`;
+            // Riformatta la data per il campo <input type="date"> (YYYY-MM-DD)
+            const formattedDate = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`; 
+
             document.getElementById("data").value = formattedDate;
-            document.getElementById("entrate").value = itemToModify.entrate;
-            document.getElementById("uscite").value = itemToModify.uscite;
+            // Usiamo 0.00 se il campo non esiste nell'oggetto caricato da Firebase
+            document.getElementById("entrate").value = (itemToModify.entrate || 0).toFixed(2);
+            document.getElementById("uscite").value = (itemToModify.uscite || 0).toFixed(2);
+            
             const noteSelect = document.getElementById("note-select");
             const altraNotaInput = document.getElementById("altra-nota");
             let isDefaultOption = false;
+
             for (let i = 0; i < noteSelect.options.length; i++) {
                 if (noteSelect.options[i].value === itemToModify.note) {
                     noteSelect.value = itemToModify.note;
@@ -446,303 +498,440 @@
                     break;
                 }
             }
+            
             if (!isDefaultOption) {
                 noteSelect.value = "Altro";
                 altraNotaInput.value = itemToModify.note;
                 altraNotaInput.style.display = "block";
             }
-            storicoDati.splice(index, 1);
-            salvaDatiOnline();
-            ricaricaTabellaPrincipale();
-            aggiornaRiepilogo();
+
+            dbRef.child(key).remove()
+                .then(() => {
+                    delete storicoDati[key]; 
+                    ricaricaTabellaPrincipale();
+                    aggiornaRiepilogo();
+                    alert("Voce caricata nel form per la modifica. Clicca 'Aggiungi Dati' per salvare la modifica.");
+                })
+                .catch(error => {
+                    console.error("Errore nella preparazione della modifica:", error);
+                });
         }
+
+        // La logica di calcolo ignora un campo se non è presente, quindi funziona!
         function aggiornaRiepilogo() {
             let entrateTot = 0, usciteTot = 0;
             let primoInserimento = "N/A", ultimoInserimento = "N/A";
             
-            if (storicoDati.length > 0) {
-                const datiOrdinati = [...storicoDati].sort((a, b) => parseData(a.data) - parseData(b.data));
+            const vociArray = Object.values(storicoDati);
+
+            if (vociArray.length > 0) {
+                // Ordina per data per trovare il range
+                const datiOrdinati = [...vociArray].sort((a, b) => parseData(a.data) - parseData(b.data)); 
                 primoInserimento = datiOrdinati[0].data;
                 ultimoInserimento = datiOrdinati[datiOrdinati.length - 1].data;
                 
-                storicoDati.forEach((item) => {
-                    entrateTot += item.entrate;
-                    usciteTot += item.uscite;
+                vociArray.forEach((item) => {
+                    // Usiamo (item.campo || 0) per gestire l'assenza del campo (se è stato salvato senza)
+                    entrateTot = parseFloat((entrateTot + (item.entrate || 0)).toFixed(2));
+                    usciteTot = parseFloat((usciteTot + (item.uscite || 0)).toFixed(2));
                 });
             }
             
-            document.getElementById("sum-entrate-main").textContent = `Entrate: ${entrateTot.toFixed(2)}`;
-            document.getElementById("sum-uscite-main").textContent = `Uscite: ${usciteTot.toFixed(2)}`;
-            document.getElementById("sum-fondo-main").textContent = `Fondo Cassa Attuale: ${(entrateTot - usciteTot).toFixed(2)}`;
+            document.getElementById("sum-entrate-main").textContent = `Entrate: ${entrateTot.toFixed(2)} €`;
+            document.getElementById("sum-uscite-main").textContent = `Uscite: ${usciteTot.toFixed(2)} €`;
+            document.getElementById("sum-fondo-main").textContent = `Fondo Cassa Attuale: ${(entrateTot - usciteTot).toFixed(2)} €`;
             document.getElementById("date-range-main").textContent = `Periodo: dal ${primoInserimento} al ${ultimoInserimento}`;
         }
+
         function ricaricaTabellaPrincipale() {
             const tableBody = document.getElementById("storico-table").querySelector("tbody");
             tableBody.innerHTML = "";
-            const datiOrdinati = [...storicoDati];
-            datiOrdinati.sort((a, b) => {
-                const dataA = a.data.split('-').reverse().join('-');
-                const dataB = b.data.split('-').reverse().join('-');
-                return new Date(dataB) - new Date(dataA);
-            });
-            datiOrdinati.forEach((item, index) => {
-                const originalIndex = storicoDati.findIndex(d =>
-                    d.data === item.data &&
-                    d.entrate === item.entrate &&
-                    d.uscite === item.uscite &&
-                    d.note === item.note
-                );
+            
+            const datiConChiave = Object.keys(storicoDati).map(key => ({
+                key: key,
+                ...storicoDati[key]
+            }));
+
+            // Ordina per data (dal più recente al più vecchio)
+            datiConChiave.sort((a, b) => parseData(b.data) - parseData(a.data));
+
+            datiConChiave.forEach((item) => {
+                const entrate = (item.entrate || 0).toFixed(2);
+                const uscite = (item.uscite || 0).toFixed(2);
+
                 const newRow = tableBody.insertRow();
                 newRow.innerHTML = `
                     <td>${item.data}</td>
-                    <td class="green">${item.entrate.toFixed(2)}</td>
-                    <td class="red">${item.uscite.toFixed(2)}</td>
+                    <td class="green">${entrate} €</td>
+                    <td class="red">${uscite} €</td>
                     <td>${item.note}</td>
                     <td>
-                        <button class="accent" onclick="modificaVoce(${originalIndex})">Modifica</button>
-                        <button class="danger" onclick="rimuoviVoce(${originalIndex})">Rimuovi</button>
+                        <button class="accent" onclick="modificaVoce('${item.key}')">Modifica</button>
+                        <button class="danger" onclick="rimuoviVoce('${item.key}')">Rimuovi</button>
                     </td>
                 `;
             });
         }
-        function esportaPDF(tipo) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const { datiFiltrati, fondoPrecedente } = filtraDatiPerEsportazione(tipo);
-            if (datiFiltrati.length === 0) {
-                alert("Nessun dato da esportare!");
+        
+        function getDatiFiltrabili() {
+            return Object.keys(storicoDati).map(key => ({
+                key: key,
+                // Assicuriamo che i campi esistano con valore 0 se mancanti
+                entrate: storicoDati[key].entrate || 0,
+                uscite: storicoDati[key].uscite || 0,
+                ...storicoDati[key]
+            }));
+        }
+
+
+        function cancellaDatiSelezionati() {
+            const checkboxes = document.querySelectorAll("#search-results-table .seleziona-voce:checked");
+            
+            if (checkboxes.length === 0) {
+                alert("Nessuna voce selezionata per l'eliminazione.");
                 return;
             }
-            const primaData = datiFiltrati[0].data;
-            const ultimaData = datiFiltrati[datiFiltrati.length - 1].data;
-            let titolo = "Storico Spese";
-            if (tipo === "settimana") {
-                const dataFiltro = document.getElementById("search-week-date").value;
-                titolo = `Storico Spese - Settimana del ${formatData(dataFiltro)}`;
-            } else if (tipo === "mese") {
-                const meseAnno = document.getElementById("search-month").value;
-                titolo = `Storico Spese - Mese ${meseAnno}`;
+
+            if (confirm(`Sei sicuro di voler eliminare ${checkboxes.length} voci selezionate?`)) {
+                const chiaviDaCancellare = Array.from(checkboxes)
+                    .map(cb => cb.getAttribute("data-key"));
+                
+                const updates = {};
+                chiaviDaCancellare.forEach(key => {
+                    updates[key] = null; 
+                });
+
+                dbRef.update(updates)
+                    .then(() => {
+                        caricaDatiOnline(); 
+                        resettaRicerca(); 
+                        alert("Voci cancellate con successo.");
+                    })
+                    .catch(error => {
+                        console.error("Errore nella cancellazione multipla:", error);
+                    });
             }
-            doc.setFontSize(18);
-            doc.text(titolo, 14, 20);
-            doc.setFontSize(12);
-            doc.text(`Periodo: dal ${primaData} al ${ultimaData}`, 14, 30);
-            const columns = ["Data", "Entrate", "Uscite", "Note"];
-            const data = datiFiltrati.map((row) => [row.data, row.entrate.toFixed(2), row.uscite.toFixed(2), row.note]);
-            doc.autoTable({
-                head: [columns],
-                body: data,
-                startY: 40,
-                margin: { top: 10 },
-                theme: "grid",
-                didParseCell: (hookData) => {
-                    if (hookData.section === 'body') {
-                        if (hookData.column.index === 1) {
-                            hookData.cell.styles.textColor = [76, 175, 80]; // Verde
-                        } else if (hookData.column.index === 2) {
-                            hookData.cell.styles.textColor = [244, 67, 54]; // Rosso
-                        }
-                    }
-                },
+        }
+
+        // Funzione modificata per aggiornare le variabili globali per l'esportazione
+        function aggiornaDatiEtitleRicerca(datiFiltrati, fondoPrecedente, tipo, query) {
+            datiAttualiRicerca = datiFiltrati;
+            let entrateTot = 0, usciteTot = 0;
+            datiFiltrati.forEach((item) => {
+                entrateTot = parseFloat((entrateTot + item.entrate).toFixed(2));
+                usciteTot = parseFloat((usciteTot + item.uscite).toFixed(2));
             });
-            const finalY = doc.lastAutoTable.finalY || 40;
-            const entrateTot = datiFiltrati.reduce((sum, item) => sum + item.entrate, 0);
-            const usciteTot = datiFiltrati.reduce((sum, item) => sum + item.uscite, 0);
-            const fondoCassaPeriodo = entrateTot - usciteTot;
-            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
-            doc.setFontSize(12);
-            doc.setTextColor(76, 175, 80);
-            doc.text(`Entrate: ${entrateTot.toFixed(2)}`, 14, finalY + 15);
-            doc.setTextColor(244, 67, 54);
-            doc.text(`Uscite: ${usciteTot.toFixed(2)}`, 14, finalY + 22);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Fondo Cassa Attuale: ${fondoTotale.toFixed(2)}`, 14, finalY + 29);
-            doc.save(`storico_spese_${tipo}.pdf`);
-        }
-        function esportaExcel(tipo) {
-            const { datiFiltrati, fondoPrecedente } = filtraDatiPerEsportazione(tipo);
-            if (datiFiltrati.length === 0) {
-                alert("Nessun dato da esportare!");
-                return;
+
+            // Aggiorna il riepilogo del DOM
+            const fondoFinale = parseFloat((fondoPrecedente + entrateTot - usciteTot).toFixed(2));
+            document.getElementById("search-sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)} €`;
+            document.getElementById("search-sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)} €`;
+            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa Attuale: ${fondoFinale.toFixed(2)} € (Partendo da: ${fondoPrecedente.toFixed(2)} €)`;
+
+            // Aggiornamento delle variabili globali per l'esportazione
+            riepilogoAttualeRicerca.entrate = entrateTot;
+            riepilogoAttualeRicerca.uscite = usciteTot;
+            riepilogoAttualeRicerca.fondoPrecedente = fondoPrecedente;
+
+            if (tipo === 'week') {
+                const dataFiltroObj = new Date(query + "T00:00:00");
+                let giornoSettimana = dataFiltroObj.getDay();
+                const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
+                const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
+                const fineSettimana = new Date(inizioSettimana);
+                fineSettimana.setDate(inizioSettimana.getDate() + 6);
+                titoloPeriodoRicerca = `Settimana: ${formatData(inizioSettimana.toISOString().substring(0, 10))} - ${formatData(fineSettimana.toISOString().substring(0, 10))}`;
+            } else if (tipo === 'month') {
+                titoloPeriodoRicerca = `Mese: ${query}`;
+            } else if (tipo === '15-13') {
+                const [meseStr, annoStr] = query.split("/");
+                let meseSuccessivo = parseInt(meseStr) + 1;
+                let annoSuccessivo = parseInt(annoStr);
+                if (meseSuccessivo > 12) {
+                    meseSuccessivo = 1;
+                    annoSuccessivo++;
+                }
+                const meseFin = meseSuccessivo.toString().padStart(2, '0');
+                titoloPeriodoRicerca = `Periodo 15-13: 15/${meseStr}/${annoStr} - 13/${meseFin}/${annoSuccessivo}`;
             }
-            const entrateTot = datiFiltrati.reduce((sum, item) => sum + item.entrate, 0);
-            const usciteTot = datiFiltrati.reduce((sum, item) => sum + item.uscite, 0);
-            const fondoCassaPeriodo = entrateTot - usciteTot;
-            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
-            const ws_data = [
-                ["Data", "Entrate", "Uscite", "Note"],
-                ...datiFiltrati.map((row) => [row.data, parseFloat(row.entrate.toFixed(2)), parseFloat(row.uscite.toFixed(2)), row.note]),
-                [],
-                ["Riepilogo"],
-                ["Entrate Totali:", entrateTot.toFixed(2)],
-                ["Uscite Totali:", usciteTot.toFixed(2)],
-                ["Fondo Cassa Attuale:", fondoTotale.toFixed(2)],
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(ws_data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Storico Spese");
-            XLSX.writeFile(wb, `storico_spese_${tipo}.xlsx`);
         }
-        function filtraDatiPerEsportazione(tipo) {
-            let datiFiltrati = [];
-            let fondoPrecedente = 0;
-            const dataFiltro = document.getElementById("search-week-date").value;
-            const meseFiltro = document.getElementById("search-month").value;
-            if (tipo === "settimana" && dataFiltro) {
-                const result = filtraDatiConIndicePerSettimana(dataFiltro);
-                datiFiltrati = result.datiFiltrati;
-                fondoPrecedente = result.fondoPrecedente;
-            } else if (tipo === "mese" && meseFiltro) {
-                const result = filtraDatiConIndicePerMese(meseFiltro);
-                datiFiltrati = result.datiFiltrati;
-                fondoPrecedente = result.fondoPrecedente;
-            } else {
-                return { datiFiltrati: [], fondoPrecedente: 0 };
-            }
-            return { datiFiltrati, fondoPrecedente };
-        }
-        function cercaDatiFiltrati() {
-            const dataFiltro = document.getElementById("search-week-date").value;
-            const meseFiltro = document.getElementById("search-month").value;
+        
+        // Funzione modificata per salvare i dati per l'esportazione
+        function cercaPerPeriodo(periodo) {
             const risultatiContainer = document.getElementById("risultati-ricerca");
             const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
             risultatiTBody.innerHTML = "";
-            let datiFiltratiConIndice = [];
+            
+            let datiFiltratiConChiave = [];
             let fondoPrecedente = 0;
-            if (dataFiltro) {
-                const result = filtraDatiConIndicePerSettimana(dataFiltro);
-                datiFiltratiConIndice = result.datiFiltrati;
+            let queryData;
+            
+            if (periodo === 'week') {
+                queryData = document.getElementById("search-week-date").value;
+                if (!queryData) {
+                    alert("Inserisci una data per la ricerca per settimana.");
+                    risultatiContainer.style.display = "none";
+                    datiAttualiRicerca = []; // Resetta i dati per l'esportazione
+                    return;
+                }
+                const result = filtraDatiConChiavePerSettimana(queryData);
+                datiFiltratiConChiave = result.datiFiltrati;
                 fondoPrecedente = result.fondoPrecedente;
-            } else if (meseFiltro) {
-                const result = filtraDatiConIndicePerMese(meseFiltro);
-                datiFiltratiConIndice = result.datiFiltrati;
+            } else if (periodo === 'month') {
+                queryData = document.getElementById("search-month").value;
+                if (!queryData) {
+                    alert("Inserisci un mese/anno (MM/YYYY) per la ricerca per mese.");
+                    risultatiContainer.style.display = "none";
+                    datiAttualiRicerca = [];
+                    return;
+                }
+                const result = filtraDatiConChiavePerMese(queryData);
+                datiFiltratiConChiave = result.datiFiltrati;
+                fondoPrecedente = result.fondoPrecedente;
+            } else if (periodo === '15-13') {
+                queryData = document.getElementById("search-15-13").value;
+                if (!queryData) {
+                    alert("Inserisci un mese/anno (MM/YYYY) per la ricerca 15-13.");
+                    risultatiContainer.style.display = "none";
+                    datiAttualiRicerca = [];
+                    return;
+                }
+                const result = filtraDatiConChiaveDal15Al13(queryData); 
+                datiFiltratiConChiave = result.datiFiltrati;
                 fondoPrecedente = result.fondoPrecedente;
             } else {
-                alert("Inserisci una data per la settimana o un mese/anno per la ricerca.");
-                risultatiContainer.style.display = "none";
                 return;
             }
-            if (datiFiltratiConIndice.length === 0) {
+            
+            // AGGIORNA I DATI GLOBALI PER L'ESPORTAZIONE E IL RIEPILOGO
+            aggiornaDatiEtitleRicerca(datiFiltratiConChiave, fondoPrecedente, periodo, queryData);
+            
+            if (datiFiltratiConChiave.length === 0) {
                 risultatiTBody.innerHTML = '<tr><td colspan="5">Nessun dato trovato per i criteri di ricerca.</td></tr>';
-                aggiornaRiepilogoRicerca(0, 0, fondoPrecedente);
             } else {
-                datiFiltratiConIndice.forEach((item) => {
+                // Ordina per data ascendente
+                datiFiltratiConChiave.sort((a, b) => parseData(a.data) - parseData(b.data));
+                
+                datiFiltratiConChiave.forEach((item) => {
                     const newRow = risultatiTBody.insertRow();
                     newRow.innerHTML = `
-                        <td><input type="checkbox" class="seleziona-voce" data-original-index="${item.originalIndex}" /></td>
+                        <td><input type="checkbox" class="seleziona-voce" data-key="${item.key}" /></td>
                         <td>${item.data}</td>
-                        <td class="green">${item.entrate.toFixed(2)}</td>
-                        <td class="red">${item.uscite.toFixed(2)}</td>
+                        <td class="green">${item.entrate.toFixed(2)} €</td>
+                        <td class="red">${item.uscite.toFixed(2)} €</td>
                         <td>${item.note}</td>
                     `;
                 });
-                const entrateTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.entrate, 0);
-                const usciteTot = datiFiltratiConIndice.reduce((sum, item) => sum + item.uscite, 0);
-                aggiornaRiepilogoRicerca(entrateTot, usciteTot, fondoPrecedente);
             }
+
             risultatiContainer.style.display = "block";
         }
-        function filtraDatiConIndicePerSettimana(dataFiltro) {
+        
+        function filtraDatiConChiavePerSettimana(dataFiltro) {
+            const datiCompleti = getDatiFiltrabili();
             const datiFiltrati = [];
-            if (!dataFiltro) return { datiFiltrati: [], fondoPrecedente: 0 };
-            const dataFiltroObj = new Date(dataFiltro + "T00:00:00");
-            const giornoSettimana = dataFiltroObj.getDay();
-            const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
+            // Aggiungi T00:00:00 per evitare problemi di fuso orario
+            const dataFiltroObj = new Date(dataFiltro + "T00:00:00"); 
+            
+            let giornoSettimana = dataFiltroObj.getDay();
+            // Calcola la differenza per arrivare al Lunedì (1)
+            const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1); 
+            
             const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
             inizioSettimana.setHours(0, 0, 0, 0);
+
+            const fineSettimana = new Date(inizioSettimana);
+            fineSettimana.setDate(inizioSettimana.getDate() + 6);
+            fineSettimana.setHours(23, 59, 59, 999);
+            
             let fondoPrecedente = 0;
-            const datiOrdinati = [...storicoDati].sort((a, b) => {
-                const dataA = parseData(a.data);
-                const dataB = parseData(b.data);
-                return dataA - dataB;
-            });
-            datiOrdinati.forEach((item, index) => {
+            // Ordina per data per calcolare correttamente il fondo precedente
+            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data)); 
+            
+            datiOrdinati.forEach((item) => {
                 const dataCorrente = parseData(item.data);
                 if (dataCorrente < inizioSettimana) {
-                    fondoPrecedente += item.entrate - item.uscite;
+                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
                 }
             });
-            storicoDati.forEach((item, index) => {
+            
+            datiCompleti.forEach((item) => {
                 const dataCorrente = parseData(item.data);
-                if (dataCorrente >= inizioSettimana && dataCorrente <= new Date(inizioSettimana.getTime() + 6 * 24 * 60 * 60 * 1000)) {
-                    datiFiltrati.push({ ...item, originalIndex: index });
+                if (dataCorrente >= inizioSettimana && dataCorrente <= fineSettimana) {
+                    datiFiltrati.push(item);
                 }
             });
+
             return { datiFiltrati, fondoPrecedente };
         }
-        function filtraDatiConIndicePerMese(meseFiltro) {
-            const [mese, anno] = meseFiltro.split("/");
-            if (!mese || !anno) {
+
+        function filtraDatiConChiavePerMese(meseFiltro) {
+            const datiCompleti = getDatiFiltrabili();
+            const [mese, anno] = meseFiltro.split("/").map(s => parseInt(s));
+            
+            if (isNaN(mese) || isNaN(anno) || mese < 1 || mese > 12) {
                 return { datiFiltrati: [], fondoPrecedente: 0 };
             }
+            
             const inizioMese = new Date(anno, mese - 1, 1);
-            let fondoPrecedente = 0;
+            // Il giorno 0 del mese successivo è l'ultimo giorno del mese corrente
+            const fineMese = new Date(anno, mese, 0); 
+            fineMese.setHours(23, 59, 59, 999);
+
             const datiFiltrati = [];
-            const datiOrdinati = [...storicoDati].sort((a, b) => {
-                const dataA = parseData(a.data);
-                const dataB = parseData(b.data);
-                return dataA - dataB;
-            });
-            datiOrdinati.forEach((item, index) => {
+            let fondoPrecedente = 0;
+            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data)); 
+            
+            datiOrdinati.forEach((item) => {
                 const dataCorrente = parseData(item.data);
                 if (dataCorrente < inizioMese) {
-                    fondoPrecedente += item.entrate - item.uscite;
+                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
                 }
             });
-            storicoDati.forEach((item, index) => {
-                const dataParts = item.data.split("-");
-                if (dataParts[1] == mese && dataParts[2] == anno) {
-                    datiFiltrati.push({ ...item, originalIndex: index });
+            
+            datiCompleti.forEach((item) => {
+                const dataCorrente = parseData(item.data);
+                if (dataCorrente >= inizioMese && dataCorrente <= fineMese) {
+                    datiFiltrati.push(item);
                 }
             });
+
             return { datiFiltrati, fondoPrecedente };
         }
-        function aggiornaRiepilogoRicerca(entrate, uscite, fondoPrecedente = 0) {
-            const fondoCassaPeriodo = entrate - uscite;
-            const fondoTotale = fondoPrecedente + fondoCassaPeriodo;
-            document.getElementById("search-sum-entrate").textContent = `Entrate: ${entrate.toFixed(2)}`;
-            document.getElementById("search-sum-uscite").textContent = `Uscite: ${uscite.toFixed(2)}`;
-            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa Attuale: ${fondoTotale.toFixed(2)}`;
+        
+        function filtraDatiConChiaveDal15Al13(meseFiltro) {
+            const datiCompleti = getDatiFiltrabili();
+            const [meseStr, annoStr] = meseFiltro.split("/");
+            const meseInizio = parseInt(meseStr);
+            const annoInizio = parseInt(annoStr);
+
+            if (isNaN(meseInizio) || isNaN(annoInizio) || meseInizio < 1 || meseInizio > 12) {
+                return { datiFiltrati: [], fondoPrecedente: 0 };
+            }
+
+            // Calcola le date di inizio e fine
+            const inizioPeriodo = new Date(annoInizio, meseInizio - 1, 15);
+            let meseFine = meseInizio + 1;
+            let annoFine = annoInizio;
+            if (meseFine > 12) {
+                meseFine = 1;
+                annoFine++;
+            }
+            const finePeriodo = new Date(annoFine, meseFine - 1, 13);
+            finePeriodo.setHours(23, 59, 59, 999);
+            
+            const datiFiltrati = [];
+            let fondoPrecedente = 0;
+            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data));
+
+            datiOrdinati.forEach((item) => {
+                const dataCorrente = parseData(item.data);
+                // Se la data è antecedente all'inizio del periodo, contribuisce al fondo precedente
+                if (dataCorrente < inizioPeriodo) {
+                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
+                }
+            });
+
+            datiCompleti.forEach((item) => {
+                const dataCorrente = parseData(item.data);
+                if (dataCorrente >= inizioPeriodo && dataCorrente <= finePeriodo) {
+                    datiFiltrati.push(item);
+                }
+            });
+
+            return { datiFiltrati, fondoPrecedente };
         }
-        function cancellaDatiSelezionati() {
-            const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
-            const righeSelezionate = Array.from(risultatiTBody.querySelectorAll("input.seleziona-voce:checked"));
-            if (righeSelezionate.length === 0) {
-                alert("Nessuna voce selezionata da cancellare.");
+
+        function resettaRicerca() {
+            document.getElementById("risultati-ricerca").style.display = "none";
+            document.getElementById("search-results-table").querySelector("tbody").innerHTML = "";
+            datiAttualiRicerca = []; // Resetta i dati per l'esportazione
+        }
+
+
+        // FUNZIONE DI ESPORTAZIONE PDF - IL CUORE DELLA SOLUZIONE
+        function esportaPDF(periodo) {
+            if (datiAttualiRicerca.length === 0) {
+                alert("Nessun dato da esportare. Effettua prima una ricerca per il periodo desiderato (e assicurati di usare i pulsanti 'Cerca' prima di 'Esporta').");
                 return;
             }
-            if (confirm(`Sei sicuro di voler cancellare ${righeSelezionate.length} voce/i?`)) {
-                const indiciDaCancellare = righeSelezionate.map(checkbox => parseInt(checkbox.dataset.originalIndex, 10)).sort((a, b) => b - a);
-                indiciDaCancellare.forEach(index => {
-                    storicoDati.splice(index, 1);
-                });
-                salvaDatiOnline();
-                caricaDatiOnline();
-                pulisciRisultati();
-            }
+
+            // Inizializza jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const titolo = "Riepilogo Spese - " + titoloPeriodoRicerca;
+            const filename = "Riepilogo_Spese_" + periodo + "_" + new Date().toISOString().substring(0, 10) + ".pdf";
+
+            // 1. Aggiungi il Titolo
+            doc.setFontSize(16);
+            doc.text(titolo, 14, 20);
+
+            // 2. Prepara l'intestazione e i dati per autoTable
+            const head = [['Data', 'Entrate (€)', 'Uscite (€)', 'Note']];
+            const body = datiAttualiRicerca.map(item => [
+                item.data, 
+                item.entrate.toFixed(2), 
+                item.uscite.toFixed(2), 
+                item.note
+            ]);
+
+            // 3. Genera la Tabella con autoTable
+            doc.autoTable({
+                head: head,
+                body: body,
+                startY: 30, // Inizia sotto il titolo
+                styles: {
+                    fontSize: 10,
+                    cellPadding: 3,
+                    halign: 'center'
+                },
+                headStyles: {
+                    fillColor: [33, 150, 243] // Colore info (blu)
+                },
+                columnStyles: {
+                    1: { halign: 'right' }, // Entrate a destra
+                    2: { halign: 'right' }  // Uscite a destra
+                },
+                didParseCell: (data) => {
+                    // Imposta i colori del testo per Entrate e Uscite
+                    if (data.section === 'body') {
+                        if (data.column.index === 1 && parseFloat(data.cell.raw) > 0) {
+                            data.cell.styles.textColor = [76, 175, 80]; // Verde (accent)
+                        }
+                        if (data.column.index === 2 && parseFloat(data.cell.raw) > 0) {
+                            data.cell.styles.textColor = [244, 67, 54]; // Rosso (danger)
+                        }
+                    }
+                }
+            });
+
+            // 4. Aggiungi il Riepilogo
+            let finalY = doc.autoTable.previous.finalY; // Ottieni la posizione finale della tabella
+            doc.setFontSize(12);
+            doc.setTextColor(0); // Nero per il testo di riepilogo
+            finalY += 10;
+            
+            // Calcola il Fondo Finale
+            const fondoFinale = parseFloat((riepilogoAttualeRicerca.fondoPrecedente + riepilogoAttualeRicerca.entrate - riepilogoAttualeRicerca.uscite).toFixed(2));
+            const fondoInizialeText = `Fondo precedente al periodo: ${riepilogoAttualeRicerca.fondoPrecedente.toFixed(2)} €`;
+            const entrateText = `Totale Entrate del periodo: ${riepilogoAttualeRicerca.entrate.toFixed(2)} €`;
+            const usciteText = `Totale Uscite del periodo: ${riepilogoAttualeRicerca.uscite.toFixed(2)} €`;
+            const fondoFinaleText = `Fondo Cassa Finale: ${fondoFinale.toFixed(2)} €`;
+
+            // Disegna il riepilogo
+            const margin = 14;
+            doc.text(fondoInizialeText, margin, finalY);
+            doc.text(entrateText, margin, finalY + 5);
+            doc.text(usciteText, margin, finalY + 10);
+            
+            doc.setFontSize(14); // Rende più evidente il totale
+            doc.text(fondoFinaleText, margin, finalY + 18);
+
+            // 5. Salva il PDF
+            doc.save(filename);
         }
-        function pulisciRisultati() {
-            document.getElementById("risultati-ricerca").style.display = "none";
-            document.getElementById("search-week-date").value = "";
-            document.getElementById("search-month").value = "";
-            impostaDataRicerca();
-        }
-        
-        // Nuova funzione per impostare la data odierna nei campi di ricerca
-        function impostaDataRicerca() {
-            const today = new Date();
-            const searchWeekDateInput = document.getElementById("search-week-date");
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            if (searchWeekDateInput) {
-                searchWeekDateInput.value = `${year}-${month}-${day}`;
-            }
-            const searchMonthInput = document.getElementById("search-month");
-            if (searchMonthInput) {
-                searchMonthInput.value = `${month}/${year}`;
-            }
-        }
+
     </script>
 </body>
 </html>

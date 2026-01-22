@@ -9,91 +9,112 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
-            --bg-dark: #121212; --bg-light: #f8f9fa;
+            --bg-dark: #121212; --bg-light: #f4f7f6;
             --card-dark: #1e1e1e; --card-light: #ffffff;
-            --text-dark: #e0e0e0; --text-light: #212529;
-            --accent: #4CAF50; --danger: #ef5350;
-            --warning: #ffca28; --info: #42a5f5;
-            --purple: #ab47bc; --secondary: #78909c;
+            --text-dark: #e0e0e0; --text-light: #2c3e50;
+            --accent: #4CAF50; --danger: #e74c3c;
+            --warning: #f1c40f; --info: #3498db;
+            --purple: #9b59b6; --secondary: #95a5a6;
         }
 
         body { 
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            font-family: 'Inter', system-ui, sans-serif; 
             background-color: var(--bg-dark); color: var(--text-dark); 
-            margin: 0; padding: 0; transition: background 0.3s;
-            -webkit-tap-highlight-color: transparent;
+            margin: 0; padding: 0; transition: 0.3s ease;
         }
         body.light-theme { background-color: var(--bg-light); color: var(--text-light); }
 
         header { 
-            padding: 20px; text-align: center; font-size: 1.4rem; font-weight: 800; 
-            background: #1a1a1a; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative; padding: 20px; text-align: center; 
+            font-size: 1.5rem; font-weight: 800; background: #1a1a1a; 
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4);
         }
-        .light-theme header { background: #fff; color: #333; }
+        .light-theme header { background: #ffffff; color: #333; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
 
-        .container { width: 94%; max-width: 800px; margin: 15px auto; padding-bottom: 50px; }
+        .theme-toggle { 
+            position: absolute; top: 18px; right: 18px; 
+            width: 35px; height: 35px; border-radius: 50%; 
+            border: none; cursor: pointer; display: flex; 
+            align-items: center; justify-content: center;
+            background: var(--warning); color: #222;
+        }
+
+        .container { 
+            width: 95%; max-width: 1200px; margin: 20px auto; 
+            display: flex; flex-direction: column; gap: 20px; 
+        }
 
         .card { 
-            background: var(--card-dark); padding: 15px; border-radius: 16px; 
-            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.08);
+            background: var(--card-dark); padding: 20px; border-radius: 12px; 
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .light-theme .card { background: var(--card-light); border: 1px solid #e0e0e0; }
+        .light-theme .card { background: var(--card-light); border: 1px solid #ddd; }
 
-        .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 600px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+        .grid-main-form { 
+            display: grid; grid-template-columns: 1fr; gap: 15px; 
+        }
+        
+        @media (min-width: 992px) {
+            .grid-main-form { grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1fr 0.6fr 0.6fr; align-items: flex-end; }
+        }
 
-        label { display: block; margin-bottom: 5px; font-size: 0.8rem; font-weight: 600; opacity: 0.7; }
+        label { display: block; margin-bottom: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
 
         input, select { 
-            height: 45px; padding: 0 10px; border-radius: 10px; border: 2px solid #333; 
-            background: #2d2d2d; color: white; width: 100%; font-size: 1rem; box-sizing: border-box;
+            height: 45px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #333; 
+            background: #2d2d2d; color: white; width: 100%; font-size: 0.95rem; box-sizing: border-box;
         }
-        .light-theme input, .light-theme select { background: #f1f3f5; color: #333; border: 2px solid #dee2e6; }
+        .light-theme input, .light-theme select { background: #fff; color: #333; border: 1.5px solid #cbd5e0; }
 
-        /* Pulsanti */
-        .btn-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        button { 
-            height: 48px; border: none; border-radius: 12px; cursor: pointer; 
-            display: flex; align-items: center; justify-content: center;
-            gap: 8px; font-weight: bold; font-size: 0.9rem; transition: 0.2s;
+        .btn { 
+            height: 45px; border: none; border-radius: 8px; cursor: pointer; 
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 8px; font-weight: 700; font-size: 0.8rem; transition: 0.2s; width: 100%;
         }
-        button:active { transform: scale(0.95); }
-        .full-width { grid-column: span 2; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-info { background: var(--info); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: var(--secondary); color: white; }
+        .btn-purple { background: var(--purple); color: white; }
+        
+        .summary-container { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; 
+        }
+        .summary-card { padding: 15px; border-radius: 10px; text-align: center; background: rgba(255,255,255,0.03); }
+        .val { display: block; font-size: 1.2rem; font-weight: 800; margin-top: 5px; }
 
-        .accent { background: var(--accent); color: white; }
-        .info { background: var(--info); color: white; }
-        .danger { background: var(--danger); color: white; }
-        .warning { background: var(--warning); color: #222; }
-        .secondary { background: var(--secondary); color: white; }
-        .purple { background: var(--purple); color: white; }
-
-        /* Riepilogo */
-        .summary-box { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .summary-item { padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); text-align: center; }
-        .summary-item.total { grid-column: span 2; border-top: 2px solid var(--info); font-size: 1.1rem; }
-
+        .table-wrapper { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(0,0,0,0.3); padding: 12px; text-align: left; font-size: 0.7rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        
         .green { color: var(--accent); }
         .red { color: var(--danger); }
+        .blue { color: var(--info); }
 
-        /* Tabelle Mobile */
-        .table-scroll { overflow-x: auto; border-radius: 10px; background: rgba(0,0,0,0.2); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        #box-altra-nota { grid-column: 1 / -1; margin-top: -10px; }
+        @media (min-width: 992px) { #box-altra-nota { grid-column: span 2; margin-top: 0; } }
 
-        .theme-toggle { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; border-radius: 50%; }
+        .action-btns { display: flex; gap: 15px; font-size: 1.1rem; }
+        .action-btns i { cursor: pointer; transition: 0.2s; }
+        .action-btns i:hover { transform: scale(1.2); }
     </style>
 </head>
 <body onload="inizializza()">
 
-    <header>Gestione Auto</header>
-    <button class="theme-toggle warning" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+    <header>
+        GESTIONE AUTO
+        <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+    </header>
 
     <div class="container">
         <div class="card">
-            <div class="form-grid">
+            <input type="hidden" id="edit-id" value="">
+            <div class="grid-main-form">
                 <div><label>Data</label><input type="date" id="data"></div>
-                <div><label>Entrate (€)</label><input type="number" id="entrate" inputmode="decimal"></div>
-                <div><label>Uscite (€)</label><input type="number" id="uscite" inputmode="decimal"></div>
+                <div><label>Entrata (€)</label><input type="number" id="entrate" inputmode="decimal" placeholder="0.00"></div>
+                <div><label>Uscita (€)</label><input type="number" id="uscite" inputmode="decimal" placeholder="0.00"></div>
                 <div>
                     <label>Nota</label>
                     <select id="note-select" onchange="checkAltro()">
@@ -104,66 +125,70 @@
                         <option value="Telepass">Telepass</option>
                         <option value="Altro">Altro...</option>
                     </select>
-                    <input type="text" id="altra-nota" style="display:none; margin-top:8px" placeholder="Specifica...">
                 </div>
+                
+                <div><button id="btn-submit" class="btn btn-accent" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI</button></div>
+                <div><button class="btn btn-purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-upload"></i> IMPORTA</button></div>
+                <div><button class="btn btn-purple" onclick="esportaBackupJSON()"><i class="fa-solid fa-download"></i> BACKUP</button></div>
+                
+                <div id="box-altra-nota" style="display:none">
+                    <label>Specifica Nota</label><input type="text" id="altra-nota">
+                </div>
+                <input type="file" id="file-input" style="display:none" accept=".json" onchange="importaBackupJSON(event)">
             </div>
-            <button class="accent full-width" style="margin-top:15px;" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI ORA</button>
         </div>
 
-        <div class="card summary-box">
-            <div class="summary-item">E: <span class="green" id="sum-entrate-main">0€</span></div>
-            <div class="summary-item">U: <span class="red" id="sum-uscite-main">0€</span></div>
-            <div class="summary-item total" id="sum-fondo-main">FONDO: <strong>0.00 €</strong></div>
+        <div class="summary-container">
+            <div class="card summary-card"><label>Entrate</label><span class="val green" id="sum-entrate-main">0.00 €</span></div>
+            <div class="card summary-card"><label>Uscite</label><span class="val red" id="sum-uscite-main">0.00 €</span></div>
+            <div class="card summary-card" style="border-top: 3px solid var(--info)"><label>Fondo Attuale</label><span class="val" id="sum-fondo-main">0.00 €</span></div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="toggleVisibilita('storico-container')">
+            <i class="fa-solid fa-clock-rotate-left"></i> MOSTRA / NASCONDI STORICO COMPLETO
+        </button>
+        
+        <div id="storico-container" style="display:none" class="card">
+            <div class="table-wrapper">
+                <table id="storico-table">
+                    <thead><tr><th>Data</th><th>Entrata</th><th>Uscita</th><th>Nota</th><th>Azioni</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
-            <label><i class="fa-solid fa-magnifying-glass"></i> Ricerca e Report</label>
-            <div class="form-grid">
+            <label><i class="fa-solid fa-filter"></i> Filtri e Ricerca</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: flex-end;">
                 <div><label>Settimana</label><input type="date" id="search-week"></div>
                 <div><label>Mese (MM/YYYY)</label><input type="text" id="search-month" placeholder="01/2026"></div>
-                <div class="full-width"><label>Periodo 15 - 16 succ. (MM/YYYY)</label><input type="text" id="search-15-16" placeholder="01/2026"></div>
-            </div>
-            
-            <div class="btn-list">
-                <button class="info" onclick="eseguiRicerca('week')">Settimana</button>
-                <button class="info" onclick="eseguiRicerca('month')">Mese</button>
-                <button class="info full-width" onclick="eseguiRicerca('15-16')">Filtra Periodo 15 - 16</button>
-                <button class="secondary" onclick="resetFiltri()">Reset</button>
-                <button class="danger" onclick="generaPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                <div><label>Periodo 15 - 16 succ.</label><input type="text" id="search-15-16" placeholder="01/2026"></div>
+                
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn btn-info" style="flex:1" onclick="eseguiRicerca('15-16')">15-16</button>
+                    <button class="btn btn-info" style="flex:1" onclick="eseguiRicerca('month')">MESE</button>
+                </div>
+                <button class="btn btn-danger" onclick="generaPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
             </div>
         </div>
 
         <div id="risultati-container" style="display:none" class="card">
-            <h4 id="titolo-ricerca" style="margin:0 0 10px 0; color:var(--info);"></h4>
-            <div class="table-scroll">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h4 id="titolo-ricerca" style="margin:0; color:var(--info);"></h4>
+                <button class="btn btn-secondary" style="width:auto; height:30px; padding:0 15px;" onclick="resetFiltri()">X</button>
+            </div>
+            <div class="table-wrapper">
                 <table id="search-table">
                     <thead><tr><th>Data</th><th>E</th><th>U</th><th>Nota</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div id="search-summary" style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; font-size:0.85rem;"></div>
-        </div>
-
-        <div class="btn-list">
-            <button class="purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-upload"></i> Importa</button>
-            <button class="purple" onclick="esportaBackupJSON()"><i class="fa-solid fa-download"></i> Backup</button>
-            <input type="file" id="file-input" style="display:none" accept=".json" onchange="importaBackupJSON(event)">
-        </div>
-
-        <button class="secondary full-width" style="margin-top:15px" onclick="toggleVisibilita('storico-container')">Mostra Storico Completo</button>
-        <div id="storico-container" style="display:none" class="table-scroll card">
-            <table id="storico-table">
-                <thead><tr><th>Data</th><th>E</th><th>U</th><th>X</th></tr></thead>
-                <tbody></tbody>
-            </table>
+            <div id="search-summary" style="margin-top:15px; padding:15px; background:rgba(255,255,255,0.05); border-radius:8px;"></div>
         </div>
     </div>
 
     <script>
         let databaseLocale = JSON.parse(localStorage.getItem('db_spese_locale')) || [];
-        let datiFiltrati = [];
-        let etichettaFiltro = "";
-        let saldoPrecedente = 0;
 
         function inizializza() {
             document.getElementById("data").valueAsDate = new Date();
@@ -176,18 +201,60 @@
         }
 
         function aggiungiRecord() {
+            const idEdit = document.getElementById("edit-id").value;
             const d = document.getElementById("data").value;
             const e = parseFloat(document.getElementById("entrate").value) || 0;
             const u = parseFloat(document.getElementById("uscite").value) || 0;
             const n = document.getElementById("note-select").value;
             const nota = n === "Altro" ? document.getElementById("altra-nota").value : n;
 
-            if(!d) return alert("Manca la data!");
-            if(n !== "Ferma" && e === 0 && u === 0) return alert("Inserisci un importo!");
+            if(!d) return alert("Scegli una data!");
 
-            databaseLocale.push({ id: Date.now(), data: d, entrate: e, uscite: u, note: nota || "-" });
+            if(idEdit) {
+                // MODIFICA
+                const index = databaseLocale.findIndex(item => item.id == idEdit);
+                if(index !== -1) {
+                    databaseLocale[index] = { ...databaseLocale[index], data: d, entrate: e, uscite: u, note: nota || "-" };
+                }
+                document.getElementById("edit-id").value = "";
+                document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-plus"></i> AGGIUNGI';
+                document.getElementById("btn-submit").classList.replace("btn-info", "btn-accent");
+            } else {
+                // NUOVO
+                databaseLocale.push({ id: Date.now(), data: d, entrate: e, uscite: u, note: nota || "-" });
+            }
+
             salvaEAggiorna();
             resetForm();
+        }
+
+        function preparaModifica(id) {
+            const item = databaseLocale.find(x => x.id == id);
+            if(!item) return;
+
+            document.getElementById("edit-id").value = item.id;
+            document.getElementById("data").value = item.data;
+            document.getElementById("entrate").value = item.entrate;
+            document.getElementById("uscite").value = item.uscite;
+            
+            const select = document.getElementById("note-select");
+            const opzioniStandard = ["Ferma", "Diesel", "Pedaggio", "Telepass"];
+            
+            if(opzioniStandard.includes(item.note)) {
+                select.value = item.note;
+                document.getElementById("box-altra-nota").style.display = "none";
+            } else if(item.note === "-") {
+                select.value = "";
+                document.getElementById("box-altra-nota").style.display = "none";
+            } else {
+                select.value = "Altro";
+                document.getElementById("box-altra-nota").style.display = "block";
+                document.getElementById("altra-nota").value = item.note;
+            }
+
+            document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-check"></i> AGGIORNA';
+            document.getElementById("btn-submit").classList.replace("btn-accent", "btn-info");
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function aggiornaTabella() {
@@ -196,70 +263,69 @@
             let eT = 0, uT = 0;
             databaseLocale.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(item => {
                 eT += item.entrate; uT += item.uscite;
-                tbody.innerHTML += `<tr><td>${item.data.split('-').reverse().slice(0,2).join('/')}</td><td class="green">${item.entrate}</td><td class="red">${item.uscite}</td><td><i class="fa-solid fa-trash red" onclick="elimina(${item.id})"></i></td></tr>`;
+                tbody.innerHTML += `<tr>
+                    <td>${item.data.split('-').reverse().join('/')}</td>
+                    <td class="green">${item.entrate.toFixed(2)}</td>
+                    <td class="red">${item.uscite.toFixed(2)}</td>
+                    <td>${item.note}</td>
+                    <td class="action-btns">
+                        <i class="fa-solid fa-pen-to-square blue" onclick="preparaModifica(${item.id})" title="Modifica"></i>
+                        <i class="fa-solid fa-trash red" onclick="elimina(${item.id})" title="Elimina"></i>
+                    </td>
+                </tr>`;
             });
-            document.getElementById("sum-entrate-main").innerText = eT.toFixed(2) + "€";
-            document.getElementById("sum-uscite-main").innerText = uT.toFixed(2) + "€";
-            document.getElementById("sum-fondo-main").innerHTML = `FONDO: <strong>${(eT - uT).toFixed(2)} €</strong>`;
+            document.getElementById("sum-entrate-main").innerText = eT.toFixed(2) + " €";
+            document.getElementById("sum-uscite-main").innerText = uT.toFixed(2) + " €";
+            document.getElementById("sum-fondo-main").innerText = (eT - uT).toFixed(2) + " €";
         }
 
         function eseguiRicerca(tipo) {
-            const sw = document.getElementById("search-week").value;
             const sm = document.getElementById("search-month").value;
             const sp = document.getElementById("search-15-16").value;
             let inizio, fine;
 
-            if(tipo === 'week' && sw) {
-                let d = new Date(sw);
-                let day = d.getDay() || 7;
-                inizio = new Date(d); inizio.setDate(d.getDate() - day + 1);
-                fine = new Date(inizio); fine.setDate(inizio.getDate() + 6);
-                etichettaFiltro = `Settimana ${inizio.toLocaleDateString()}`;
-            } else if(tipo === 'month' && sm) {
+            if(tipo === 'month' && sm) {
                 let p = sm.split("/");
                 inizio = new Date(p[1], p[0]-1, 1);
                 fine = new Date(p[1], p[0], 0);
-                etichettaFiltro = `Mese ${sm}`;
             } else if(tipo === '15-16' && sp) {
                 let p = sp.split("/");
                 inizio = new Date(p[1], p[0]-1, 15);
                 fine = new Date(p[1], p[0], 16);
-                etichettaFiltro = `Dal 15/${p[0]} al 16/${parseInt(p[0]) == 12 ? '01' : String(parseInt(p[0])+1).padStart(2,'0')}`;
-            } else { return alert("Inserisci il valore per filtrare!"); }
+            }
 
-            datiFiltrati = databaseLocale.filter(x => {
+            let filtrati = databaseLocale.filter(x => {
                 let d = new Date(x.data);
                 return d >= inizio && d <= fine;
             }).sort((a,b) => new Date(a.data) - new Date(b.data));
 
-            saldoPrecedente = databaseLocale.filter(x => new Date(x.data) < inizio).reduce((a,b) => a + (b.entrate - b.uscite), 0);
-            
-            mostraRisultati();
-        }
-
-        function mostraRisultati() {
             const tbody = document.querySelector("#search-table tbody");
             tbody.innerHTML = "";
-            let e = 0, u = 0;
-            datiFiltrati.forEach(i => {
-                e += i.entrate; u += i.uscite;
+            filtrati.forEach(i => {
                 tbody.innerHTML += `<tr><td>${i.data.split('-').reverse().slice(0,2).join('/')}</td><td class="green">${i.entrate}</td><td class="red">${i.uscite}</td><td>${i.note}</td></tr>`;
             });
-            document.getElementById("titolo-ricerca").innerText = etichettaFiltro;
-            document.getElementById("search-summary").innerHTML = `Saldo Prec: ${saldoPrecedente.toFixed(2)}€ | Fondo Tot: <b>${(saldoPrecedente + e - u).toFixed(2)}€</b>`;
             document.getElementById("risultati-container").style.display = "block";
         }
 
-        function elimina(id) { if(confirm("Eliminare?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
+        function elimina(id) { if(confirm("Cancellare definitivamente?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
         function toggleTheme() { document.body.classList.toggle("light-theme"); }
-        function checkAltro() { document.getElementById("altra-nota").style.display = document.getElementById("note-select").value === "Altro" ? "block" : "none"; }
+        function checkAltro() { document.getElementById("box-altra-nota").style.display = document.getElementById("note-select").value === "Altro" ? "block" : "none"; }
         function toggleVisibilita(id) { let e = document.getElementById(id); e.style.display = e.style.display === "none" ? "block" : "none"; }
-        function resetForm() { document.getElementById("entrate").value = ""; document.getElementById("uscite").value = ""; document.getElementById("note-select").value = ""; document.getElementById("altra-nota").style.display = "none"; }
+        function resetForm() { 
+            document.getElementById("entrate").value = ""; 
+            document.getElementById("uscite").value = ""; 
+            document.getElementById("note-select").value = "";
+            document.getElementById("altra-nota").value = "";
+            document.getElementById("edit-id").value = "";
+            document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-plus"></i> AGGIUNGI';
+            document.getElementById("btn-submit").classList.replace("btn-info", "btn-accent");
+            document.getElementById("box-altra-nota").style.display = "none";
+        }
         function resetFiltri() { document.getElementById("risultati-container").style.display = "none"; }
         
         function esportaBackupJSON() {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(databaseLocale, null, 2)], {type: "application/json"}));
+            const blob = new Blob([JSON.stringify(databaseLocale, null, 2)], {type: "application/json"});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
             a.download = "backup_spese.json"; a.click();
         }
 
@@ -272,9 +338,7 @@
         function generaPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text("Report: " + etichettaFiltro, 14, 15);
-            const r = datiFiltrati.map(i => [i.data, i.entrate, i.uscite, i.note]);
-            doc.autoTable({ head: [['Data', 'Entrata', 'Uscita', 'Nota']], body: r, startY: 20 });
+            doc.text("Report Spese", 14, 15);
             doc.save("Report.pdf");
         }
     </script>

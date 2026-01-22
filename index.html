@@ -1,937 +1,323 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icona.png">
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestione Spese con Firebase</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>Gestione Spese Auto</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
     <style>
         :root {
-            --bg-dark: #1e1e1e;
-            --bg-light: #ffffff;
-            --text-dark: #f5f5f5;
-            --text-light: #222222;
-            --accent: #4CAF50;
-            --danger: #f44336;
-            --warning: #FFC107;
-            --info: #2196F3;
+            --bg-dark: #121212; --bg-light: #f4f7f6;
+            --card-dark: #1e1e1e; --card-light: #ffffff;
+            --accent: #4CAF50; --danger: #f44336;
+            --warning: #FFC107; --info: #2196F3;
+            --purple: #9C27B0; --secondary: #757575;
+            --text-dark: #e0e0e0; --text-light: #2c3e50;
         }
-        body {
-            font-family: Arial, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+
+        * { box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg-dark); color: var(--text-dark); 
+            margin: 0; padding: 0; transition: 0.3s;
         }
-        .light-theme {
-            background-color: var(--bg-light);
-            color: var(--text-light);
+        body.light-theme { background: var(--bg-light); color: var(--text-light); }
+
+        header { 
+            padding: 15px; text-align: center; font-size: 1.2rem; font-weight: bold;
+            background: rgba(0,0,0,0.3); border-bottom: 2px solid var(--accent);
+            position: relative;
         }
-        header {
-            padding: 1rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-align: center;
-            width: 100%;
-        }
-        .container {
-            width: 95%;
-            max-width: 1200px;
-        }
-        .form-section {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            align-items: flex-end;
-        }
-        .form-section > div {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            flex: 1;
-            min-width: 150px;
-        }
-        .form-section label {
+
+        /* Pulsante Tema Piccolo in alto a destra */
+        .theme-toggle { 
+            position: absolute; 
+            top: 50%; 
+            right: 10px; 
+            transform: translateY(-50%);
+            width: 35px; height: 35px; 
+            padding: 0; 
             font-size: 0.9rem;
-            margin-bottom: 5px;
-        }
-        input[type="date"],
-        input[type="number"],
-        input[type="text"],
-        select {
-            padding: 8px;
-            font-size: 1rem;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px;
-        }
-        th,
-        td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: center;
-        }
-        tr:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.03);
-        }
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
-        }
-        button {
-            border: none;
-            cursor: pointer;
             border-radius: 6px;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; justify-content: center;
         }
-        .accent {
-            background-color: var(--accent);
-            color: #fff;
+
+        .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 10px; }
+
+        .card { 
+            background: var(--card-dark); padding: 15px; border-radius: 12px; 
+            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); 
         }
-        .danger {
-            background-color: var(--danger);
-            color: #fff;
+        .light-theme .card { background: var(--card-light); border: 1px solid #ddd; }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 12px; 
         }
-        .warning {
-            background-color: var(--warning);
-            color: #222;
+        @media (min-width: 600px) {
+            .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
         }
-        .info {
-            background-color: var(--info);
-            color: #fff;
+
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; opacity: 0.8; }
+        input, select { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #444; 
+            background: #2d2d2d; color: white; font-size: 16px; 
         }
-        .theme-toggle {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            color: inherit;
-            font-size: 1.2rem;
-            border: none;
-            cursor: pointer;
+        .light-theme input, .light-theme select { background: #fff; color: #333; border: 1px solid #ccc; }
+
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        button { 
+            flex: 1 1 calc(50% - 8px);
+            padding: 12px 8px; border: none; border-radius: 8px; cursor: pointer;
+            font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 0.85rem;
         }
-        .green {
-            color: var(--accent);
-            font-weight: bold;
+
+        .accent { background: var(--accent); color: white; }
+        .info { background: var(--info); color: white; }
+        .danger { background: var(--danger); color: white; }
+        .warning { background: var(--warning); color: #222; }
+        .purple { background: var(--purple); color: white; }
+        .secondary { background: var(--secondary); color: white; }
+
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.85rem; }
+        th, td { padding: 10px 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+
+        .summary-box { 
+            display: flex; justify-content: space-around; flex-wrap: wrap; 
+            gap: 10px; text-align: center; padding: 12px;
         }
-        .red {
-            color: var(--danger);
-            font-weight: bold;
-        }
-        .summary {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.03);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: flex-start;
-            font-size: 1.05rem;
-        }
-        .riepilogo-storico {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: flex-start;
-            align-items: center;
-        }
-        .table-scroll {
-            overflow-y: auto;
-            max-height: 400px;
-            overflow-x: auto;
-        }
-        .glow {
-            box-shadow: 0 0 8px 4px var(--info);
-            transition: box-shadow 0.5s ease-in-out;
-        }
-        .search-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: flex-end;
-        }
-        @media (max-width: 768px) {
-            .form-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .form-section > div {
-                align-items: stretch;
-            }
-            table {
-                font-size: 0.85rem;
-            }
-            .button-group, .riepilogo-storico, .search-buttons {
-                flex-direction: column;
-                gap: 10px;
-                align-items: stretch;
-            }
-        }
+        .summary-item { flex: 1 1 80px; font-size: 0.8rem; }
+        .summary-item span { display: block; font-size: 1rem; font-weight: bold; margin-top: 3px; }
+
+        .green { color: #66bb6a; }
+        .red { color: #ef5350; }
+        #file-input { display: none; }
     </style>
 </head>
-<body onload="caricaDatiOnline(); impostaCampiRicerca()">
-    <header>Gestione Spese</header>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Cambia tema"><i class="fa-solid fa-moon"></i></button>
+<body onload="inizializza()">
+
+    <header>
+        Gestione Auto
+        <button class="theme-toggle warning" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+    </header>
+
     <div class="container">
-        <div class="form-section">
-            <div>
-                <label for="data">Data</label>
-                <input type="date" id="data" />
+        <div class="card">
+            <div class="form-grid">
+                <div><label>Data</label><input type="date" id="data"></div>
+                <div><label>Entrate (€)</label><input type="number" id="entrate" value="0" step="0.01"></div>
+                <div><label>Uscite (€)</label><input type="number" id="uscite" value="0" step="0.01"></div>
+                <div>
+                    <label>Nota</label>
+                    <select id="note-select" onchange="checkAltro()">
+                        <option value="">Seleziona...</option>
+                        <option value="Ferma">Ferma</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Pedaggio">Pedaggio</option>
+                        <option value="Altro">Altro</option>
+                    </select>
+                    <input type="text" id="altra-nota" style="display:none; margin-top:5px" placeholder="Specifica...">
+                </div>
             </div>
-            <div>
-                <label for="entrate">Entrate</label>
-                <input type="number" id="entrate" value="0" step="0.01" min="0" />
-            </div>
-            <div>
-                <label for="uscite">Uscite</label>
-                <input type="number" id="uscite" value="0" step="0.01" min="0" />
-            </div>
-            <div>
-                <label for="note">Note</label>
-                <select id="note-select" onchange="toggleAltraNota()">
-                    <option value="">Seleziona una nota...</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Pedaggio Autostradale">Pedaggio Autostradale</option>
-                    <option value="Canone Telepass">Canone Telepass</option>
-                    <option value="Altro">Altro</option>
-                </select>
-                <input type="text" id="altra-nota" style="display: none; margin-top: 5px" placeholder="Inserisci altra nota" />
-            </div>
-            <div style="flex-grow: 0;">
-                <button class="accent" onclick="aggiungiVoce()"><i class="fa-solid fa-plus"></i> Aggiungi Dati</button>
+            <div class="btn-group">
+                <button class="accent" style="flex: 1 1 100%;" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI</button>
             </div>
         </div>
-        <div class="button-group" style="margin-bottom: 20px;">
-            <button class="accent" onclick="salvaDatiOnline()" disabled><i class="fa-solid fa-cloud-upload-alt"></i> Salva Forzato (Non necessario)</button>
-            <button class="info" onclick="caricaDatiOnline()"><i class="fa-solid fa-cloud-download-alt"></i> Carica Dati</button>
+
+        <div class="btn-group">
+            <button class="purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-file-import"></i> IMPORTA</button>
+            <button class="info" onclick="esportaBackupJSON()"><i class="fa-solid fa-file-export"></i> BACKUP</button>
+            <input type="file" id="file-input" accept=".json" onchange="importaBackupJSON(event)">
         </div>
-        <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
-        <div class="summary riepilogo-storico" id="summary-main">
-            <span class="green" id="sum-entrate-main">Entrate: 0</span>
-            <span class="red" id="sum-uscite-main">Uscite: 0</span>
-            <span id="sum-fondo-main">Fondo Cassa Attuale: 0</span>
-            <div id="date-range-main" style="margin-left: auto;">
-                Periodo: dal ... al ...
+
+        <div class="card summary-box">
+            <div class="summary-item">Entrate <span id="sum-entrate-main" class="green">0.00 €</span></div>
+            <div class="summary-item">Uscite <span id="sum-uscite-main" class="red">0.00 €</span></div>
+            <div class="summary-item">Fondo <strong id="sum-fondo-main" style="display:block; margin-top:3px;">0.00 €</strong></div>
+        </div>
+
+        <button class="secondary" style="width:100%; margin-bottom:15px;" onclick="toggleVisibilita('storico-container')">
+            <i class="fa-solid fa-list"></i> STORICO COMPLETO
+        </button>
+        <div id="storico-container" style="display:none" class="table-scroll card">
+            <table id="storico-table">
+                <thead><tr><th>Data</th><th>Entrate</th><th>Uscite</th><th>Note</th><th>Azione</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <hr style="opacity:0.1; margin: 20px 0;">
+
+        <h4 style="margin-left: 10px;"><i class="fa-solid fa-search"></i> Filtri e Report</h4>
+        <div class="card">
+            <div class="form-grid">
+                <div><label>Settimana</label><input type="date" id="search-week"></div>
+                <div><label>Mese (MM/YYYY)</label><input type="text" id="search-month" placeholder="01/2026"></div>
+                <div><label>15-13 (MM/YYYY)</label><input type="text" id="search-15-13" placeholder="01/2026"></div>
+            </div>
+            <div class="btn-group">
+                <button class="info" onclick="eseguiRicerca('week')">SETT.</button>
+                <button class="info" onclick="eseguiRicerca('month')">MESE</button>
+                <button class="info" onclick="eseguiRicerca('15-13')">15-13</button>
+                <button class="secondary" onclick="resetFiltri()">RESET</button>
+                <button class="danger" style="flex: 1 1 100%;" onclick="generaPDF()"><i class="fa-solid fa-file-pdf"></i> GENERA PDF</button>
             </div>
         </div>
-        <button onclick="toggleStorico()" class="warning"><i class="fa-solid fa-eye"></i> Mostra Storico</button>
-        <div id="storico-container" style="display: none;">
+
+        <div id="risultati-container" style="display:none" class="card">
+            <h4 id="titolo-ricerca" style="margin-top:0; font-size:0.9rem;">Risultati</h4>
             <div class="table-scroll">
-                <table id="storico-table">
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Entrate</th>
-                            <th>Uscite</th>
-                            <th>Note</th>
-                            <th>Azioni</th>
-                        </tr>
-                    </thead>
+                <table id="search-table">
+                    <thead><tr><th>Data</th><th>Entrate</th><th>Uscite</th><th>Note</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-        </div>
-        <hr style="border-top: 1px solid #ccc; margin: 20px 0" />
-        <div class="search-section">
-            <h3>Ricerca e Gestione Dati</h3>
-            <div class="form-section">
-                <div>
-                    <label for="search-week-date">Data (per settimana)</label>
-                    <input type="date" id="search-week-date" />
-                </div>
-                <div>
-                    <label for="search-month">Mese/Anno (MM/YYYY)</label>
-                    <input type="text" id="search-month" placeholder="MM/YYYY" />
-                </div>
-                <div>
-                    <label for="search-15-13">Mese/Anno (15-13)</label>
-                    <input type="text" id="search-15-13" placeholder="MM/YYYY" />
-                </div>
-            </div>
-            <div class="search-buttons" style="margin-top: 12px; justify-content: flex-start">
-                <button class="info" onclick="cercaPerPeriodo('week')"><i class="fa-solid fa-calendar-week"></i> Cerca per Settimana</button>
-                <button class="info" onclick="cercaPerPeriodo('month')"><i class="fa-solid fa-calendar-alt"></i> Cerca per Mese</button>
-                <button class="info" onclick="cercaPerPeriodo('15-13')"><i class="fa-solid fa-calendar-day"></i> Cerca 15-13</button>
-                <button class="warning" onclick="resettaRicerca()"><i class="fa-solid fa-redo"></i> Resetta Ricerca</button>
-            </div>
-            <div class="button-group" style="margin-top: 12px; justify-content: flex-start">
-                <button class="danger" onclick="esportaPDF('week')"><i class="fa-solid fa-file-pdf"></i> Esporta Settimana (PDF)</button>
-                <button class="danger" onclick="esportaPDF('month')"><i class="fa-solid fa-file-pdf"></i> Esporta Mese (PDF)</button>
-                <button class="danger" onclick="esportaPDF('15-13')"><i class="fa-solid fa-file-pdf"></i> Esporta 15-13 (PDF)</button>
-            </div>
-            <div id="risultati-ricerca" style="display: none; margin-top: 20px">
-                <h4>Risultati Trovati</h4>
-                <div class="table-scroll">
-                    <table id="search-results-table">
-                        <thead>
-                            <tr>
-                                <th>Seleziona</th>
-                                <th>Data</th>
-                                <th>Entrate</th>
-                                <th>Uscite</th>
-                                <th>Note</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div class="summary" id="search-summary">
-                    <span class="green" id="search-sum-entrate">Entrate: 0</span>
-                    <span class="red" id="search-sum-uscite">Uscite: 0</span>
-                    <span id="search-sum-fondo">Fondo Cassa Attuale: 0</span>
-                </div>
-                <div style="margin-top: 12px">
-                    <button class="danger" onclick="cancellaDatiSelezionati()"><i class="fa-solid fa-trash"></i> Cancella Voci Selezionate</button>
-                </div>
-            </div>
+            <div id="search-summary" style="margin-top:10px; font-size:0.85rem; line-height:1.5;"></div>
         </div>
     </div>
+
     <script>
-        let storicoDati = {};
-        // Variabili globali aggiunte per l'esportazione PDF
-        let datiAttualiRicerca = []; 
-        let riepilogoAttualeRicerca = { entrate: 0, uscite: 0, fondoPrecedente: 0 };
-        let titoloPeriodoRicerca = "Ricerca Periodo";
+        let databaseLocale = JSON.parse(localStorage.getItem('db_spese_locale')) || [];
+        let datiFiltrati = [];
+        let etichettaFiltro = "";
+        let saldoPrecedente = 0;
 
-        // Ricorda di inserire le tue credenziali Firebase reali qui!
-        const firebaseConfig = {
-            apiKey: "AIzaSyCKf4B5Sr4chHiUw3xlfumk3Qzj7zF581U",
-            authDomain: "gestione-spese-9a9fd.firebaseapp.com",
-            databaseURL: "https://gestione-spese-9a9fd-default-rtdb.firebaseio.com",
-            projectId: "gestione-spese-9a9fd",
-            storageBucket: "gestione-spese-9a9fd.firebasestorage.app",
-            messagingSenderId: "542317208533",
-            appId: "1:542317208533:web:947f32ccddb4e5ed2c535c",
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        function inizializza() {
+            const oggi = new Date();
+            document.getElementById("data").valueAsDate = oggi;
+            document.getElementById("search-week").valueAsDate = oggi;
+            aggiornaTabella();
         }
 
-        const database = firebase.database();
-        const dbRef = database.ref("/spese");
-
-        document.addEventListener("DOMContentLoaded", () => {
-            document.getElementById("data").valueAsDate = new Date();
-        });
-
-        function impostaCampiRicerca() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            document.getElementById("search-week-date").valueAsDate = today;
-            document.getElementById("search-month").value = `${month}/${year}`;
-            document.getElementById("search-15-13").value = `${month}/${year}`; 
+        function salvaEAggiorna() {
+            localStorage.setItem('db_spese_locale', JSON.stringify(databaseLocale));
+            aggiornaTabella();
         }
 
-        async function salvaDatiOnline() {
-            alert("Il salvataggio forzato non è più necessario, le modifiche sono sincrone.");
+        function aggiungiRecord() {
+            const data = document.getElementById("data").value;
+            const entrate = parseFloat(document.getElementById("entrate").value) || 0;
+            const uscite = parseFloat(document.getElementById("uscite").value) || 0;
+            const noteSel = document.getElementById("note-select").value;
+            const notaFinale = noteSel === "Altro" ? document.getElementById("altra-nota").value : noteSel;
+
+            if(!data) return alert("Data mancante!");
+            if(noteSel !== "Ferma" && entrate === 0 && uscite === 0) return alert("Inserisci importi o nota 'Ferma'");
+
+            databaseLocale.push({ id: Date.now(), data, entrate, uscite, note: notaFinale || "-" });
+            salvaEAggiorna();
+            resetForm();
         }
 
-        async function caricaDatiOnline() {
-            const btn = document.querySelector('button.info');
-            btn.classList.add('glow');
-            try {
-                const snapshot = await dbRef.once("value");
-                const data = snapshot.val();
-                
-                if (data) {
-                    storicoDati = data;
-                } else {
-                    storicoDati = {};
-                }
-                
-                ricaricaTabellaPrincipale();
-                aggiornaRiepilogo();
-            } catch (error) {
-                console.error("Errore nel caricamento da Firebase:", error);
-                alert("Si è verificato un errore durante il caricamento da Firebase.");
-            } finally {
-                setTimeout(() => {
-                    btn.classList.remove('glow');
-                }, 1000);
-            }
+        function aggiornaTabella() {
+            const tbody = document.querySelector("#storico-table tbody");
+            tbody.innerHTML = "";
+            let eT = 0, uT = 0;
+            databaseLocale.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(item => {
+                eT += item.entrate; uT += item.uscite;
+                const row = tbody.insertRow();
+                row.innerHTML = `<td>${item.data.split('-').reverse().join('/')}</td><td class="green">${item.entrate.toFixed(2)}</td><td class="red">${item.uscite.toFixed(2)}</td><td>${item.note}</td><td><i class="fa-solid fa-trash red" onclick="elimina(${item.id})"></i></td>`;
+            });
+            document.getElementById("sum-entrate-main").innerText = eT.toFixed(2) + " €";
+            document.getElementById("sum-uscite-main").innerText = uT.toFixed(2) + " €";
+            document.getElementById("sum-fondo-main").innerText = (eT - uT).toFixed(2) + " €";
         }
 
-        function toggleTheme() {
-            document.body.classList.toggle("light-theme");
-            const icon = document.querySelector(".theme-toggle i");
-            icon.className = document.body.classList.contains("light-theme") ? "fa-solid fa-sun" : "fa-solid fa-moon";
+        function elimina(id) { if(confirm("Eliminare?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
+
+        function esportaBackupJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(databaseLocale));
+            const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "backup.json"); dl.click();
         }
 
-        function toggleStorico() {
-            const c = document.getElementById("storico-container");
-            const btn = document.querySelector('button[onclick="toggleStorico()"]');
-            if (c.style.display === "none") {
-                c.style.display = "block";
-                btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Nascondi Storico';
-            } else {
-                c.style.display = "none";
-                btn.innerHTML = '<i class="fa-solid fa-eye"></i> Mostra Storico';
-            }
-        }
-
-        function formatData(dateString) {
-            const data = new Date(dateString);
-            const giorno = data.getDate().toString().padStart(2, "0");
-            const mese = (data.getMonth() + 1).toString().padStart(2, "0");
-            const anno = data.getFullYear();
-            return `${giorno}-${mese}-${anno}`;
-        }
-
-        function parseData(dateString) {
-            const [giorno, mese, anno] = dateString.split('-');
-            // Usa il formato ISO YYYY-MM-DD per una corretta interpretazione della data
-            return new Date(`${anno}-${mese}-${giorno}T00:00:00`); 
-        }
-
-        function toggleAltraNota() {
-            const noteSelect = document.getElementById("note-select");
-            const altraNotaInput = document.getElementById("altra-nota");
-            if (noteSelect.value === "Altro") {
-                altraNotaInput.style.display = "block";
-            } else {
-                altraNotaInput.style.display = "none";
-            }
-        }
-
-        // AGGIORNATO: Ignora i valori di entrate/uscite se sono pari a zero
-        function aggiungiVoce() {
-            const dataVal = document.getElementById("data").value;
-            // Assicuriamo che i valori siano numeri con precisione a 2 decimali
-            const entrateVal = parseFloat((parseFloat(document.getElementById("entrate").value) || 0).toFixed(2)); 
-            const usciteVal = parseFloat((parseFloat(document.getElementById("uscite").value) || 0).toFixed(2)); 
-
-            const noteSelectVal = document.getElementById("note-select").value;
-            let noteVal = (noteSelectVal === "Altro") ? (document.getElementById("altra-nota").value || "-") : (noteSelectVal || "-");
-
-            if (!dataVal || (entrateVal <= 0 && usciteVal <= 0)) {
-                alert("Per favore, inserisci una data e almeno un valore valido per entrate o uscite.");
-                return;
-            }
-
-            const nuovaVoce = {
-                data: formatData(dataVal),
-                note: noteVal,
+        function importaBackupJSON(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try { databaseLocale = JSON.parse(e.target.result); salvaEAggiorna(); alert("Backup caricato!"); } catch(err) { alert("File non valido"); }
             };
-
-            // IGNORIAMO SE IL VALORE È ZERO
-            if (entrateVal > 0) {
-                nuovaVoce.entrate = entrateVal;
-            }
-            if (usciteVal > 0) {
-                nuovaVoce.uscite = usciteVal;
-            }
-
-            // Salva su Firebase con ID univoco
-            dbRef.push(nuovaVoce)
-                .then(() => {
-                    // Ricarica i dati per sincronizzare l'interfaccia
-                    caricaDatiOnline(); 
-                })
-                .catch(error => {
-                    console.error("Errore nell'aggiunta della voce:", error);
-                    alert("Si è verificato un errore durante l'aggiunta della voce.");
-                });
-            
-            // Resetta i campi di input
-            document.getElementById("data").valueAsDate = new Date();
-            document.getElementById("entrate").value = "0.00"; 
-            document.getElementById("uscite").value = "0.00";
-            document.getElementById("note-select").value = "";
-            document.getElementById("altra-nota").value = "";
-            document.getElementById("altra-nota").style.display = "none";
+            reader.readAsText(file);
         }
 
-        function rimuoviVoce(key) {
-            if (confirm("Sei sicuro di voler rimuovere questa voce?")) {
-                dbRef.child(key).remove()
-                    .then(() => {
-                        delete storicoDati[key]; 
-                        ricaricaTabellaPrincipale();
-                        aggiornaRiepilogo();
-                    })
-                    .catch(error => {
-                        console.error("Errore nella rimozione della voce:", error);
-                    });
-            }
-        }
-        
-        function modificaVoce(key) {
-            const itemToModify = storicoDati[key];
-            const dataParts = itemToModify.data.split("-");
-            // Riformatta la data per il campo <input type="date"> (YYYY-MM-DD)
-            const formattedDate = `${dataParts[2]}-${dataParts[1]}-${dataParts[0]}`; 
-
-            document.getElementById("data").value = formattedDate;
-            // Usiamo 0.00 se il campo non esiste nell'oggetto caricato da Firebase
-            document.getElementById("entrate").value = (itemToModify.entrate || 0).toFixed(2);
-            document.getElementById("uscite").value = (itemToModify.uscite || 0).toFixed(2);
-            
-            const noteSelect = document.getElementById("note-select");
-            const altraNotaInput = document.getElementById("altra-nota");
-            let isDefaultOption = false;
-
-            for (let i = 0; i < noteSelect.options.length; i++) {
-                if (noteSelect.options[i].value === itemToModify.note) {
-                    noteSelect.value = itemToModify.note;
-                    altraNotaInput.style.display = "none";
-                    isDefaultOption = true;
-                    break;
-                }
-            }
-            
-            if (!isDefaultOption) {
-                noteSelect.value = "Altro";
-                altraNotaInput.value = itemToModify.note;
-                altraNotaInput.style.display = "block";
-            }
-
-            dbRef.child(key).remove()
-                .then(() => {
-                    delete storicoDati[key]; 
-                    ricaricaTabellaPrincipale();
-                    aggiornaRiepilogo();
-                    alert("Voce caricata nel form per la modifica. Clicca 'Aggiungi Dati' per salvare la modifica.");
-                })
-                .catch(error => {
-                    console.error("Errore nella preparazione della modifica:", error);
-                });
+        function calcolaSaldoPrecedente(dataInizioStr) {
+            const inizioFiltro = new Date(dataInizioStr);
+            return databaseLocale
+                .filter(item => new Date(item.data) < inizioFiltro)
+                .reduce((acc, item) => acc + (item.entrate - item.uscite), 0);
         }
 
-        // La logica di calcolo ignora un campo se non è presente, quindi funziona!
-        function aggiornaRiepilogo() {
-            let entrateTot = 0, usciteTot = 0;
-            let primoInserimento = "N/A", ultimoInserimento = "N/A";
-            
-            const vociArray = Object.values(storicoDati);
+        function eseguiRicerca(tipo) {
+            const sw = document.getElementById("search-week").value;
+            const sm = document.getElementById("search-month").value;
+            const sp = document.getElementById("search-15-13").value;
+            let dataInizioFiltro = "";
 
-            if (vociArray.length > 0) {
-                // Ordina per data per trovare il range
-                const datiOrdinati = [...vociArray].sort((a, b) => parseData(a.data) - parseData(b.data)); 
-                primoInserimento = datiOrdinati[0].data;
-                ultimoInserimento = datiOrdinati[datiOrdinati.length - 1].data;
-                
-                vociArray.forEach((item) => {
-                    // Usiamo (item.campo || 0) per gestire l'assenza del campo (se è stato salvato senza)
-                    entrateTot = parseFloat((entrateTot + (item.entrate || 0)).toFixed(2));
-                    usciteTot = parseFloat((usciteTot + (item.uscite || 0)).toFixed(2));
-                });
+            if(tipo === 'week' && sw) {
+                const d = new Date(sw);
+                const day = d.getDay() || 7;
+                const lun = new Date(d); lun.setDate(d.getDate() - day + 1);
+                const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
+                dataInizioFiltro = lun.toISOString().split('T')[0];
+                datiFiltrati = databaseLocale.filter(x => new Date(x.data) >= lun && new Date(x.data) <= dom);
+                etichettaFiltro = `Settimana ${lun.toLocaleDateString()} - ${dom.toLocaleDateString()}`;
+            } else if(tipo === 'month' && sm) {
+                const parts = sm.split("/");
+                dataInizioFiltro = `${parts[1]}-${parts[0]}-01`;
+                datiFiltrati = databaseLocale.filter(x => (new Date(x.data).getMonth()+1) == parts[0] && new Date(x.data).getFullYear() == parts[1]);
+                etichettaFiltro = `Mese ${sm}`;
+            } else if(tipo === '15-13' && sp) {
+                const parts = sp.split("/");
+                const inizio = new Date(parts[1], parts[0]-1, 15);
+                const fine = new Date(parts[1], parts[0], 13);
+                dataInizioFiltro = inizio.toISOString().split('T')[0];
+                datiFiltrati = databaseLocale.filter(x => new Date(x.data) >= inizio && new Date(x.data) <= fine);
+                etichettaFiltro = `Periodo 15/${parts[0]} - 13/${parseInt(parts[0])+1}`;
             }
-            
-            document.getElementById("sum-entrate-main").textContent = `Entrate: ${entrateTot.toFixed(2)} €`;
-            document.getElementById("sum-uscite-main").textContent = `Uscite: ${usciteTot.toFixed(2)} €`;
-            document.getElementById("sum-fondo-main").textContent = `Fondo Cassa Attuale: ${(entrateTot - usciteTot).toFixed(2)} €`;
-            document.getElementById("date-range-main").textContent = `Periodo: dal ${primoInserimento} al ${ultimoInserimento}`;
+            saldoPrecedente = calcolaSaldoPrecedente(dataInizioFiltro);
+            mostraRisultati();
         }
 
-        function ricaricaTabellaPrincipale() {
-            const tableBody = document.getElementById("storico-table").querySelector("tbody");
-            tableBody.innerHTML = "";
-            
-            const datiConChiave = Object.keys(storicoDati).map(key => ({
-                key: key,
-                ...storicoDati[key]
-            }));
-
-            // Ordina per data (dal più recente al più vecchio)
-            datiConChiave.sort((a, b) => parseData(b.data) - parseData(a.data));
-
-            datiConChiave.forEach((item) => {
-                const entrate = (item.entrate || 0).toFixed(2);
-                const uscite = (item.uscite || 0).toFixed(2);
-
-                const newRow = tableBody.insertRow();
-                newRow.innerHTML = `
-                    <td>${item.data}</td>
-                    <td class="green">${entrate} €</td>
-                    <td class="red">${uscite} €</td>
-                    <td>${item.note}</td>
-                    <td>
-                        <button class="accent" onclick="modificaVoce('${item.key}')">Modifica</button>
-                        <button class="danger" onclick="rimuoviVoce('${item.key}')">Rimuovi</button>
-                    </td>
-                `;
+        function mostraRisultati() {
+            const tbody = document.querySelector("#search-table tbody");
+            tbody.innerHTML = "";
+            let e = 0, u = 0;
+            datiFiltrati.sort((a,b) => new Date(a.data) - new Date(b.data)).forEach(item => {
+                e += item.entrate; u += item.uscite;
+                tbody.innerHTML += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td>${item.entrate.toFixed(2)}</td><td>${item.uscite.toFixed(2)}</td><td>${item.note}</td></tr>`;
             });
-        }
-        
-        function getDatiFiltrabili() {
-            return Object.keys(storicoDati).map(key => ({
-                key: key,
-                // Assicuriamo che i campi esistano con valore 0 se mancanti
-                entrate: storicoDati[key].entrate || 0,
-                uscite: storicoDati[key].uscite || 0,
-                ...storicoDati[key]
-            }));
+            document.getElementById("titolo-ricerca").innerText = etichettaFiltro;
+            document.getElementById("search-summary").innerHTML = `
+                Saldo Prec: <b>${saldoPrecedente.toFixed(2)}€</b><br>
+                Entrate: <span class="green">${e.toFixed(2)}€</span> | Uscite: <span class="red">${u.toFixed(2)}€</span><br>
+                <b>FONDO FINALE: ${(saldoPrecedente + e - u).toFixed(2)}€</b>
+            `;
+            document.getElementById("risultati-container").style.display = "block";
+            document.getElementById("risultati-container").scrollIntoView({behavior: "smooth"});
         }
 
-
-        function cancellaDatiSelezionati() {
-            const checkboxes = document.querySelectorAll("#search-results-table .seleziona-voce:checked");
-            
-            if (checkboxes.length === 0) {
-                alert("Nessuna voce selezionata per l'eliminazione.");
-                return;
-            }
-
-            if (confirm(`Sei sicuro di voler eliminare ${checkboxes.length} voci selezionate?`)) {
-                const chiaviDaCancellare = Array.from(checkboxes)
-                    .map(cb => cb.getAttribute("data-key"));
-                
-                const updates = {};
-                chiaviDaCancellare.forEach(key => {
-                    updates[key] = null; 
-                });
-
-                dbRef.update(updates)
-                    .then(() => {
-                        caricaDatiOnline(); 
-                        resettaRicerca(); 
-                        alert("Voci cancellate con successo.");
-                    })
-                    .catch(error => {
-                        console.error("Errore nella cancellazione multipla:", error);
-                    });
-            }
-        }
-
-        // Funzione modificata per aggiornare le variabili globali per l'esportazione
-        function aggiornaDatiEtitleRicerca(datiFiltrati, fondoPrecedente, tipo, query) {
-            datiAttualiRicerca = datiFiltrati;
-            let entrateTot = 0, usciteTot = 0;
-            datiFiltrati.forEach((item) => {
-                entrateTot = parseFloat((entrateTot + item.entrate).toFixed(2));
-                usciteTot = parseFloat((usciteTot + item.uscite).toFixed(2));
-            });
-
-            // Aggiorna il riepilogo del DOM
-            const fondoFinale = parseFloat((fondoPrecedente + entrateTot - usciteTot).toFixed(2));
-            document.getElementById("search-sum-entrate").textContent = `Entrate: ${entrateTot.toFixed(2)} €`;
-            document.getElementById("search-sum-uscite").textContent = `Uscite: ${usciteTot.toFixed(2)} €`;
-            document.getElementById("search-sum-fondo").textContent = `Fondo Cassa Attuale: ${fondoFinale.toFixed(2)} € (Partendo da: ${fondoPrecedente.toFixed(2)} €)`;
-
-            // Aggiornamento delle variabili globali per l'esportazione
-            riepilogoAttualeRicerca.entrate = entrateTot;
-            riepilogoAttualeRicerca.uscite = usciteTot;
-            riepilogoAttualeRicerca.fondoPrecedente = fondoPrecedente;
-
-            if (tipo === 'week') {
-                const dataFiltroObj = new Date(query + "T00:00:00");
-                let giornoSettimana = dataFiltroObj.getDay();
-                const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1);
-                const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
-                const fineSettimana = new Date(inizioSettimana);
-                fineSettimana.setDate(inizioSettimana.getDate() + 6);
-                titoloPeriodoRicerca = `Settimana: ${formatData(inizioSettimana.toISOString().substring(0, 10))} - ${formatData(fineSettimana.toISOString().substring(0, 10))}`;
-            } else if (tipo === 'month') {
-                titoloPeriodoRicerca = `Mese: ${query}`;
-            } else if (tipo === '15-13') {
-                const [meseStr, annoStr] = query.split("/");
-                let meseSuccessivo = parseInt(meseStr) + 1;
-                let annoSuccessivo = parseInt(annoStr);
-                if (meseSuccessivo > 12) {
-                    meseSuccessivo = 1;
-                    annoSuccessivo++;
-                }
-                const meseFin = meseSuccessivo.toString().padStart(2, '0');
-                titoloPeriodoRicerca = `Periodo 15-13: 15/${meseStr}/${annoStr} - 13/${meseFin}/${annoSuccessivo}`;
-            }
-        }
-        
-        // Funzione modificata per salvare i dati per l'esportazione
-        function cercaPerPeriodo(periodo) {
-            const risultatiContainer = document.getElementById("risultati-ricerca");
-            const risultatiTBody = document.getElementById("search-results-table").querySelector("tbody");
-            risultatiTBody.innerHTML = "";
-            
-            let datiFiltratiConChiave = [];
-            let fondoPrecedente = 0;
-            let queryData;
-            
-            if (periodo === 'week') {
-                queryData = document.getElementById("search-week-date").value;
-                if (!queryData) {
-                    alert("Inserisci una data per la ricerca per settimana.");
-                    risultatiContainer.style.display = "none";
-                    datiAttualiRicerca = []; // Resetta i dati per l'esportazione
-                    return;
-                }
-                const result = filtraDatiConChiavePerSettimana(queryData);
-                datiFiltratiConChiave = result.datiFiltrati;
-                fondoPrecedente = result.fondoPrecedente;
-            } else if (periodo === 'month') {
-                queryData = document.getElementById("search-month").value;
-                if (!queryData) {
-                    alert("Inserisci un mese/anno (MM/YYYY) per la ricerca per mese.");
-                    risultatiContainer.style.display = "none";
-                    datiAttualiRicerca = [];
-                    return;
-                }
-                const result = filtraDatiConChiavePerMese(queryData);
-                datiFiltratiConChiave = result.datiFiltrati;
-                fondoPrecedente = result.fondoPrecedente;
-            } else if (periodo === '15-13') {
-                queryData = document.getElementById("search-15-13").value;
-                if (!queryData) {
-                    alert("Inserisci un mese/anno (MM/YYYY) per la ricerca 15-13.");
-                    risultatiContainer.style.display = "none";
-                    datiAttualiRicerca = [];
-                    return;
-                }
-                const result = filtraDatiConChiaveDal15Al13(queryData); 
-                datiFiltratiConChiave = result.datiFiltrati;
-                fondoPrecedente = result.fondoPrecedente;
-            } else {
-                return;
-            }
-            
-            // AGGIORNA I DATI GLOBALI PER L'ESPORTAZIONE E IL RIEPILOGO
-            aggiornaDatiEtitleRicerca(datiFiltratiConChiave, fondoPrecedente, periodo, queryData);
-            
-            if (datiFiltratiConChiave.length === 0) {
-                risultatiTBody.innerHTML = '<tr><td colspan="5">Nessun dato trovato per i criteri di ricerca.</td></tr>';
-            } else {
-                // Ordina per data ascendente
-                datiFiltratiConChiave.sort((a, b) => parseData(a.data) - parseData(b.data));
-                
-                datiFiltratiConChiave.forEach((item) => {
-                    const newRow = risultatiTBody.insertRow();
-                    newRow.innerHTML = `
-                        <td><input type="checkbox" class="seleziona-voce" data-key="${item.key}" /></td>
-                        <td>${item.data}</td>
-                        <td class="green">${item.entrate.toFixed(2)} €</td>
-                        <td class="red">${item.uscite.toFixed(2)} €</td>
-                        <td>${item.note}</td>
-                    `;
-                });
-            }
-
-            risultatiContainer.style.display = "block";
-        }
-        
-        function filtraDatiConChiavePerSettimana(dataFiltro) {
-            const datiCompleti = getDatiFiltrabili();
-            const datiFiltrati = [];
-            // Aggiungi T00:00:00 per evitare problemi di fuso orario
-            const dataFiltroObj = new Date(dataFiltro + "T00:00:00"); 
-            
-            let giornoSettimana = dataFiltroObj.getDay();
-            // Calcola la differenza per arrivare al Lunedì (1)
-            const diff = dataFiltroObj.getDate() - giornoSettimana + (giornoSettimana === 0 ? -6 : 1); 
-            
-            const inizioSettimana = new Date(dataFiltroObj.setDate(diff));
-            inizioSettimana.setHours(0, 0, 0, 0);
-
-            const fineSettimana = new Date(inizioSettimana);
-            fineSettimana.setDate(inizioSettimana.getDate() + 6);
-            fineSettimana.setHours(23, 59, 59, 999);
-            
-            let fondoPrecedente = 0;
-            // Ordina per data per calcolare correttamente il fondo precedente
-            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data)); 
-            
-            datiOrdinati.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                if (dataCorrente < inizioSettimana) {
-                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
-                }
-            });
-            
-            datiCompleti.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                if (dataCorrente >= inizioSettimana && dataCorrente <= fineSettimana) {
-                    datiFiltrati.push(item);
-                }
-            });
-
-            return { datiFiltrati, fondoPrecedente };
-        }
-
-        function filtraDatiConChiavePerMese(meseFiltro) {
-            const datiCompleti = getDatiFiltrabili();
-            const [mese, anno] = meseFiltro.split("/").map(s => parseInt(s));
-            
-            if (isNaN(mese) || isNaN(anno) || mese < 1 || mese > 12) {
-                return { datiFiltrati: [], fondoPrecedente: 0 };
-            }
-            
-            const inizioMese = new Date(anno, mese - 1, 1);
-            // Il giorno 0 del mese successivo è l'ultimo giorno del mese corrente
-            const fineMese = new Date(anno, mese, 0); 
-            fineMese.setHours(23, 59, 59, 999);
-
-            const datiFiltrati = [];
-            let fondoPrecedente = 0;
-            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data)); 
-            
-            datiOrdinati.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                if (dataCorrente < inizioMese) {
-                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
-                }
-            });
-            
-            datiCompleti.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                if (dataCorrente >= inizioMese && dataCorrente <= fineMese) {
-                    datiFiltrati.push(item);
-                }
-            });
-
-            return { datiFiltrati, fondoPrecedente };
-        }
-        
-        function filtraDatiConChiaveDal15Al13(meseFiltro) {
-            const datiCompleti = getDatiFiltrabili();
-            const [meseStr, annoStr] = meseFiltro.split("/");
-            const meseInizio = parseInt(meseStr);
-            const annoInizio = parseInt(annoStr);
-
-            if (isNaN(meseInizio) || isNaN(annoInizio) || meseInizio < 1 || meseInizio > 12) {
-                return { datiFiltrati: [], fondoPrecedente: 0 };
-            }
-
-            // Calcola le date di inizio e fine
-            const inizioPeriodo = new Date(annoInizio, meseInizio - 1, 15);
-            let meseFine = meseInizio + 1;
-            let annoFine = annoInizio;
-            if (meseFine > 12) {
-                meseFine = 1;
-                annoFine++;
-            }
-            const finePeriodo = new Date(annoFine, meseFine - 1, 13);
-            finePeriodo.setHours(23, 59, 59, 999);
-            
-            const datiFiltrati = [];
-            let fondoPrecedente = 0;
-            const datiOrdinati = [...datiCompleti].sort((a, b) => parseData(a.data) - parseData(b.data));
-
-            datiOrdinati.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                // Se la data è antecedente all'inizio del periodo, contribuisce al fondo precedente
-                if (dataCorrente < inizioPeriodo) {
-                    fondoPrecedente = parseFloat((fondoPrecedente + item.entrate - item.uscite).toFixed(2));
-                }
-            });
-
-            datiCompleti.forEach((item) => {
-                const dataCorrente = parseData(item.data);
-                if (dataCorrente >= inizioPeriodo && dataCorrente <= finePeriodo) {
-                    datiFiltrati.push(item);
-                }
-            });
-
-            return { datiFiltrati, fondoPrecedente };
-        }
-
-        function resettaRicerca() {
-            document.getElementById("risultati-ricerca").style.display = "none";
-            document.getElementById("search-results-table").querySelector("tbody").innerHTML = "";
-            datiAttualiRicerca = []; // Resetta i dati per l'esportazione
-        }
-
-
-        // FUNZIONE DI ESPORTAZIONE PDF - IL CUORE DELLA SOLUZIONE
-        function esportaPDF(periodo) {
-            if (datiAttualiRicerca.length === 0) {
-                alert("Nessun dato da esportare. Effettua prima una ricerca per il periodo desiderato (e assicurati di usare i pulsanti 'Cerca' prima di 'Esporta').");
-                return;
-            }
-
-            // Inizializza jsPDF
+        function generaPDF() {
+            if(datiFiltrati.length === 0) return alert("Nessun dato!");
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
-            const titolo = "Riepilogo Spese - " + titoloPeriodoRicerca;
-            const filename = "Riepilogo_Spese_" + periodo + "_" + new Date().toISOString().substring(0, 10) + ".pdf";
-
-            // 1. Aggiungi il Titolo
-            doc.setFontSize(16);
-            doc.text(titolo, 14, 20);
-
-            // 2. Prepara l'intestazione e i dati per autoTable
-            const head = [['Data', 'Entrate (€)', 'Uscite (€)', 'Note']];
-            const body = datiAttualiRicerca.map(item => [
-                item.data, 
-                item.entrate.toFixed(2), 
-                item.uscite.toFixed(2), 
-                item.note
-            ]);
-
-            // 3. Genera la Tabella con autoTable
-            doc.autoTable({
-                head: head,
-                body: body,
-                startY: 30, // Inizia sotto il titolo
-                styles: {
-                    fontSize: 10,
-                    cellPadding: 3,
-                    halign: 'center'
-                },
-                headStyles: {
-                    fillColor: [33, 150, 243] // Colore info (blu)
-                },
-                columnStyles: {
-                    1: { halign: 'right' }, // Entrate a destra
-                    2: { halign: 'right' }  // Uscite a destra
-                },
-                didParseCell: (data) => {
-                    // Imposta i colori del testo per Entrate e Uscite
-                    if (data.section === 'body') {
-                        if (data.column.index === 1 && parseFloat(data.cell.raw) > 0) {
-                            data.cell.styles.textColor = [76, 175, 80]; // Verde (accent)
-                        }
-                        if (data.column.index === 2 && parseFloat(data.cell.raw) > 0) {
-                            data.cell.styles.textColor = [244, 67, 54]; // Rosso (danger)
-                        }
-                    }
-                }
-            });
-
-            // 4. Aggiungi il Riepilogo
-            let finalY = doc.autoTable.previous.finalY; // Ottieni la posizione finale della tabella
-            doc.setFontSize(12);
-            doc.setTextColor(0); // Nero per il testo di riepilogo
-            finalY += 10;
-            
-            // Calcola il Fondo Finale
-            const fondoFinale = parseFloat((riepilogoAttualeRicerca.fondoPrecedente + riepilogoAttualeRicerca.entrate - riepilogoAttualeRicerca.uscite).toFixed(2));
-            const fondoInizialeText = `Fondo precedente al periodo: ${riepilogoAttualeRicerca.fondoPrecedente.toFixed(2)} €`;
-            const entrateText = `Totale Entrate del periodo: ${riepilogoAttualeRicerca.entrate.toFixed(2)} €`;
-            const usciteText = `Totale Uscite del periodo: ${riepilogoAttualeRicerca.uscite.toFixed(2)} €`;
-            const fondoFinaleText = `Fondo Cassa Finale: ${fondoFinale.toFixed(2)} €`;
-
-            // Disegna il riepilogo
-            const margin = 14;
-            doc.text(fondoInizialeText, margin, finalY);
-            doc.text(entrateText, margin, finalY + 5);
-            doc.text(usciteText, margin, finalY + 10);
-            
-            doc.setFontSize(14); // Rende più evidente il totale
-            doc.text(fondoFinaleText, margin, finalY + 18);
-
-            // 5. Salva il PDF
-            doc.save(filename);
+            doc.text("Report Spese: " + etichettaFiltro, 14, 15);
+            const rows = datiFiltrati.map(i => [i.data.split('-').reverse().join('/'), i.entrate.toFixed(2), i.uscite.toFixed(2), i.note]);
+            doc.autoTable({ head: [['Data', 'E', 'U', 'Note']], body: rows, startY: 25 });
+            doc.save(`Report.pdf`);
         }
 
+        function checkAltro() { document.getElementById("altra-nota").style.display = document.getElementById("note-select").value === "Altro" ? "block" : "none"; }
+        function toggleVisibilita(id) { const el = document.getElementById(id); el.style.display = el.style.display === "none" ? "block" : "none"; }
+        function toggleTheme() { document.body.classList.toggle("light-theme"); }
+        function resetForm() { document.getElementById("entrate").value = 0; document.getElementById("uscite").value = 0; document.getElementById("note-select").value = ""; }
+        function resetFiltri() { document.getElementById("risultati-container").style.display = "none"; }
     </script>
 </body>
 </html>

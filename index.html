@@ -1,169 +1,123 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Gestione Spese Auto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestione Spese Pro - Locale</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
-            --bg-dark: #121212; --bg-light: #f4f7f6;
-            --card-dark: #1e1e1e; --card-light: #ffffff;
+            --bg-dark: #1e1e1e; --bg-light: #ffffff;
+            --text-dark: #f5f5f5; --text-light: #222222;
             --accent: #4CAF50; --danger: #f44336;
             --warning: #FFC107; --info: #2196F3;
             --purple: #9C27B0; --secondary: #757575;
-            --text-dark: #e0e0e0; --text-light: #2c3e50;
         }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: var(--bg-dark); color: var(--text-dark); 
-            margin: 0; padding: 0; transition: background 0.3s;
-        }
-        body.light-theme { background: var(--bg-light); color: var(--text-light); }
-
-        header { 
-            padding: 15px; text-align: center; font-size: 1.2rem; font-weight: bold;
-            background: rgba(0,0,0,0.3); border-bottom: 2px solid var(--accent);
-            position: relative;
-        }
-
-        .theme-toggle { 
-            position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
-            width: 35px; height: 35px; padding: 0; border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        .container { width: 100%; max-width: 1000px; margin: 0 auto; padding: 10px; }
-        .card { 
-            background: var(--card-dark); padding: 15px; border-radius: 12px; 
-            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); 
-        }
-        .light-theme .card { background: var(--card-light); border: 1px solid #ddd; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-        @media (min-width: 600px) { .form-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
-
-        label { display: block; margin-bottom: 5px; font-size: 0.8rem; opacity: 0.8; }
-        input, select { 
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; 
-            background: #2d2d2d; color: white; font-size: 16px; 
-        }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: var(--bg-dark); color: var(--text-dark); margin: 0; padding: 0; transition: 0.3s; }
+        body.light-theme { background-color: var(--bg-light); color: var(--text-light); }
+        header { padding: 20px; text-align: center; font-size: 1.8rem; font-weight: bold; background: rgba(0,0,0,0.2); }
+        .container { width: 95%; max-width: 1200px; margin: 20px auto; padding-bottom: 100px; }
+        .card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .light-theme .card { background: #fff; border: 1px solid #ddd; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: flex-end; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9rem; opacity: 0.8; }
+        input, select { padding: 10px; border-radius: 6px; border: 1px solid #444; background: #2d2d2d; color: white; width: 100%; box-sizing: border-box; }
         .light-theme input, .light-theme select { background: #fff; color: #333; border: 1px solid #ccc; }
-
-        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        button { 
-            flex: 1 1 calc(50% - 8px); padding: 12px 8px; border: none; border-radius: 8px; 
-            cursor: pointer; font-weight: bold; display: flex; align-items: center; 
-            justify-content: center; gap: 6px; font-size: 0.85rem;
-        }
-
+        button { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
         .accent { background: var(--accent); color: white; }
         .info { background: var(--info); color: white; }
         .danger { background: var(--danger); color: white; }
         .warning { background: var(--warning); color: #222; }
         .purple { background: var(--purple); color: white; }
         .secondary { background: var(--secondary); color: white; }
-
-        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.85rem; }
-        th, td { padding: 12px 8px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .light-theme td { border-bottom: 1px solid #eee; }
-
-        .summary-box { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; text-align: center; }
-        .summary-item { flex: 1 1 80px; font-size: 0.8rem; }
-        .summary-item span { display: block; font-size: 1.1rem; font-weight: bold; margin-top: 3px; }
-
-        .green { color: #66bb6a; }
-        .red { color: #ef5350; }
+        .summary-box { display: flex; flex-wrap: wrap; gap: 25px; padding: 15px; font-size: 1.1rem; }
+        .green { color: var(--accent); font-weight: bold; }
+        .red { color: var(--danger); font-weight: bold; }
+        .table-scroll { overflow-x: auto; margin-top: 15px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .light-theme td, .light-theme th { border-bottom: 1px solid #eee; }
+        .theme-toggle { position: absolute; top: 20px; right: 20px; }
+        hr { border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 30px 0; }
         #file-input { display: none; }
     </style>
 </head>
 <body onload="inizializza()">
-
-    <header>
-        Gestione Auto
-        <button class="theme-toggle warning" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
-    </header>
+    <header>Gestione Spese Auto</header>
+    <button class="theme-toggle warning" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i> Tema</button>
 
     <div class="container">
         <div class="card">
             <div class="form-grid">
                 <div><label>Data</label><input type="date" id="data"></div>
-                <div><label>Entrate (€)</label><input type="number" id="entrate" value="0" step="0.01" onclick="this.select()"></div>
-                <div><label>Uscite (€)</label><input type="number" id="uscite" value="0" step="0.01" onclick="this.select()"></div>
+                <div><label>Entrate (€)</label><input type="number" id="entrate" value="0" step="0.01"></div>
+                <div><label>Uscite (€)</label><input type="number" id="uscite" value="0" step="0.01"></div>
                 <div>
                     <label>Nota</label>
                     <select id="note-select" onchange="checkAltro()">
                         <option value="">Seleziona...</option>
                         <option value="Ferma">Ferma</option>
                         <option value="Diesel">Diesel</option>
-                        <option value="Pedaggio">Pedaggio</option>
-                        <option value="Manutenzione">Manutenzione</option>
+                        <option value="Pedaggio Autostradale">Pedaggio Autostradale</option>
+                        <option value="Canone Telepass">Canone Telepass</option>
                         <option value="Altro">Altro</option>
                     </select>
                     <input type="text" id="altra-nota" style="display:none; margin-top:5px" placeholder="Specifica...">
                 </div>
-            </div>
-            <div class="btn-group">
-                <button class="accent" style="flex: 1 1 100%;" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI</button>
+                <button class="accent" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> Aggiungi</button>
             </div>
         </div>
 
-        <div class="btn-group">
-            <button class="purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-file-import"></i> IMPORTA</button>
-            <button class="info" onclick="esportaBackupJSON()"><i class="fa-solid fa-file-export"></i> BACKUP</button>
+        <div class="button-group" style="display:flex; flex-wrap: wrap; gap:10px; margin-bottom:20px;">
+            <button class="purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-file-import"></i> Importa Backup (JSON)</button>
+            <button class="info" onclick="esportaBackupJSON()"><i class="fa-solid fa-file-export"></i> Salva Backup (JSON)</button>
             <input type="file" id="file-input" accept=".json" onchange="importaBackupJSON(event)">
         </div>
 
         <div class="card summary-box">
-            <div class="summary-item">Entrate <span id="sum-entrate-main" class="green">0.00 €</span></div>
-            <div class="summary-item">Uscite <span id="sum-uscite-main" class="red">0.00 €</span></div>
-            <div class="summary-item">Fondo <span id="sum-fondo-main">0.00 €</span></div>
+            <div id="sum-entrate-main">Entrate: <span class="green">0.00 €</span></div>
+            <div id="sum-uscite-main">Uscite: <span class="red">0.00 €</span></div>
+            <div id="sum-fondo-main">Fondo: <strong>0.00 €</strong></div>
         </div>
 
-        <button class="secondary" style="width:100%; margin-bottom:15px;" onclick="toggleVisibilita('storico-container')">
-            <i class="fa-solid fa-list"></i> STORICO COMPLETO
-        </button>
+        <button class="warning" onclick="toggleVisibilita('storico-container')"><i class="fa-solid fa-list"></i> Mostra/Nascondi Storico Completo</button>
         <div id="storico-container" style="display:none" class="table-scroll card">
             <table id="storico-table">
-                <thead><tr><th>Data</th><th>E</th><th>U</th><th>Note</th><th></th></tr></thead>
+                <thead><tr><th>Data</th><th>Entrate</th><th>Uscite</th><th>Note</th><th>Azioni</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <hr style="opacity:0.1; margin: 20px 0;">
+        <hr>
 
-        <h4 style="margin: 0 0 10px 10px;"><i class="fa-solid fa-search"></i> Filtri e Report</h4>
+        <h3><i class="fa-solid fa-search"></i> Filtri e Report PDF</h3>
         <div class="card">
             <div class="form-grid">
-                <div><label>Settimana (Scegli giorno)</label><input type="date" id="search-week"></div>
+                <div><label>Settimana</label><input type="date" id="search-week"></div>
                 <div><label>Mese (MM/YYYY)</label><input type="text" id="search-month" placeholder="01/2026"></div>
-                <div><label>Periodo 15-13 (MM/YYYY)</label><input type="text" id="search-15-13" placeholder="01/2026"></div>
+                <div><label>Periodo 15 - 16 succ. (MM/YYYY)</label><input type="text" id="search-15-16" placeholder="01/2026"></div>
             </div>
-            <div class="btn-group">
-                <button class="info" onclick="eseguiRicerca('week')">SETT.</button>
-                <button class="info" onclick="eseguiRicerca('month')">MESE</button>
-                <button class="info" onclick="eseguiRicerca('15-13')">15-13</button>
-                <button class="secondary" onclick="resetFiltri()">RESET</button>
-                <button class="danger" style="flex: 1 1 100%;" onclick="generaPDF()"><i class="fa-solid fa-file-pdf"></i> GENERA PDF REPORT</button>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
+                <button class="info" onclick="eseguiRicerca('week')">Filtra Settimana</button>
+                <button class="info" onclick="eseguiRicerca('month')">Filtra Mese</button>
+                <button class="info" onclick="eseguiRicerca('15-16')">Filtra 15-16 Succ.</button>
+                <button class="secondary" onclick="resetFiltri()"><i class="fa-solid fa-rotate-left"></i> Reset Filtri</button>
+                <button class="danger" onclick="generaPDF()"><i class="fa-solid fa-file-pdf"></i> Esporta Risultati in PDF</button>
             </div>
         </div>
 
         <div id="risultati-container" style="display:none" class="card">
-            <h4 id="titolo-ricerca" style="margin-top:0; font-size:0.9rem; color:var(--info);">Risultati</h4>
+            <h4 id="titolo-ricerca">Risultati</h4>
             <div class="table-scroll">
                 <table id="search-table">
-                    <thead><tr><th>Data</th><th>E</th><th>U</th><th>Note</th></tr></thead>
+                    <thead><tr><th>Data</th><th>Entrate</th><th>Uscite</th><th>Note</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div id="search-summary" style="margin-top:15px; font-size:0.9rem; line-height:1.6; border-top:1px solid #444; padding-top:10px;"></div>
+            <div class="summary-box" id="search-summary" style="background: rgba(0,0,0,0.1); border-radius: 8px; margin-top: 15px;"></div>
         </div>
     </div>
 
@@ -177,10 +131,6 @@
             const oggi = new Date();
             document.getElementById("data").valueAsDate = oggi;
             document.getElementById("search-week").valueAsDate = oggi;
-            
-            // Applica tema salvato
-            if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
-            
             aggiornaTabella();
         }
 
@@ -197,7 +147,13 @@
             const notaFinale = noteSel === "Altro" ? document.getElementById("altra-nota").value : noteSel;
 
             if(!data) return alert("Inserisci la data!");
-            if(noteSel === "" && entrate === 0 && uscite === 0) return alert("Inserisci dei dati!");
+
+            const isFerma = noteSel === "Ferma";
+            const haImporto = (entrate > 0 || uscite > 0);
+
+            if (!isFerma && !haImporto) {
+                return alert("Attenzione: Inserisci un importo oppure seleziona la nota 'Ferma'.");
+            }
 
             databaseLocale.push({ id: Date.now(), data, entrate, uscite, note: notaFinale || "-" });
             salvaEAggiorna();
@@ -208,193 +164,159 @@
             const tbody = document.querySelector("#storico-table tbody");
             tbody.innerHTML = "";
             let eT = 0, uT = 0;
-
             databaseLocale.sort((a,b) => new Date(b.data) - new Date(a.data)).forEach(item => {
                 eT += item.entrate; uT += item.uscite;
                 const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${item.data.split('-').reverse().join('/')}</td>
-                    <td class="green">${item.entrate > 0 ? item.entrate.toFixed(2) : '-'}</td>
-                    <td class="red">${item.uscite > 0 ? item.uscite.toFixed(2) : '-'}</td>
-                    <td>${item.note}</td>
-                    <td><i class="fa-solid fa-trash red" onclick="elimina(${item.id})"></i></td>
-                `;
+                row.innerHTML = `<td>${item.data.split('-').reverse().join('/')}</td><td class="green">${item.entrate.toFixed(2)} €</td><td class="red">${item.uscite.toFixed(2)} €</td><td>${item.note}</td><td><button class="danger" onclick="elimina(${item.id})"><i class="fa-solid fa-trash"></i></button></td>`;
             });
-
-            document.getElementById("sum-entrate-main").innerText = eT.toFixed(2) + " €";
-            document.getElementById("sum-uscite-main").innerText = uT.toFixed(2) + " €";
-            const fondo = eT - uT;
-            const fondoEl = document.getElementById("sum-fondo-main");
-            fondoEl.innerText = fondo.toFixed(2) + " €";
-            fondoEl.className = fondo >= 0 ? "green" : "red";
+            document.getElementById("sum-entrate-main").innerHTML = `Entrate: <span class="green">${eT.toFixed(2)} €</span>`;
+            document.getElementById("sum-uscite-main").innerHTML = `Uscite: <span class="red">${uT.toFixed(2)} €</span>`;
+            document.getElementById("sum-fondo-main").innerHTML = `Fondo: <strong>${(eT - uT).toFixed(2)} €</strong>`;
         }
 
-        function elimina(id) {
-            if(confirm("Eliminare questa riga?")) {
-                databaseLocale = databaseLocale.filter(d => d.id !== id);
-                salvaEAggiorna();
-            }
+        function elimina(id) { if(confirm("Eliminare voce?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
+
+        function esportaBackupJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(databaseLocale, null, 2));
+            const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", "backup_spese.json"); dl.click();
         }
 
-        // Funzioni di Ricerca
+        function importaBackupJSON(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try { const dati = JSON.parse(e.target.result); if(confirm(`Importare ${dati.length} voci?`)) { databaseLocale = dati; salvaEAggiorna(); } } catch(err) { alert("File JSON non valido."); }
+            };
+            reader.readAsText(file);
+        }
+
+        function calcolaSaldoPrecedente(dataInizioStr) {
+            const inizioFiltro = new Date(dataInizioStr);
+            return databaseLocale
+                .filter(item => new Date(item.data) < inizioFiltro)
+                .reduce((acc, item) => acc + (item.entrate - item.uscite), 0);
+        }
+
         function eseguiRicerca(tipo) {
             const sw = document.getElementById("search-week").value;
             const sm = document.getElementById("search-month").value;
-            const sp = document.getElementById("search-15-13").value;
-            let inizioPeriodo = null;
+            const sp = document.getElementById("search-15-16").value;
+            let dataInizioFiltro = "";
 
             if(tipo === 'week' && sw) {
                 const d = new Date(sw);
                 const day = d.getDay() || 7;
                 const lun = new Date(d); lun.setDate(d.getDate() - day + 1);
                 const dom = new Date(lun); dom.setDate(lun.getDate() + 6);
-                inizioPeriodo = lun;
-                datiFiltrati = databaseLocale.filter(x => {
-                    const dx = new Date(x.data);
-                    return dx >= lun.setHours(0,0,0,0) && dx <= dom.setHours(23,59,59,999);
-                });
+                dataInizioFiltro = lun.toISOString().split('T')[0];
+                datiFiltrati = databaseLocale.filter(x => new Date(x.data) >= lun && new Date(x.data) <= dom);
                 etichettaFiltro = `Settimana ${lun.toLocaleDateString()} - ${dom.toLocaleDateString()}`;
-            } 
-            else if(tipo === 'month' && sm.includes("/")) {
-                const [m, y] = sm.split("/");
-                inizioPeriodo = new Date(y, m-1, 1);
-                datiFiltrati = databaseLocale.filter(x => {
-                    const dx = new Date(x.data);
-                    return (dx.getMonth()+1) == m && dx.getFullYear() == y;
-                });
+            } else if(tipo === 'month' && sm) {
+                const parts = sm.split("/");
+                if(parts.length < 2) return alert("Usa formato MM/YYYY");
+                dataInizioFiltro = `${parts[1]}-${parts[0]}-01`;
+                datiFiltrati = databaseLocale.filter(x => (new Date(x.data).getMonth()+1) == parts[0] && new Date(x.data).getFullYear() == parts[1]);
                 etichettaFiltro = `Mese ${sm}`;
-            } 
-            else if(tipo === '15-13' && sp.includes("/")) {
-                const [m, y] = sp.split("/");
-                const inizio = new Date(y, m-1, 15);
-                const fine = new Date(m == 12 ? parseInt(y)+1 : y, m == 12 ? 0 : m, 13);
-                inizioPeriodo = inizio;
-                datiFiltrati = databaseLocale.filter(x => {
-                    const dx = new Date(x.data);
-                    return dx >= inizio && dx <= fine;
-                });
-                etichettaFiltro = `Periodo 15/${m}/${y} - 13/${fine.getMonth()+1}/${fine.getFullYear()}`;
-            } else {
-                return alert("Inserisci un formato valido!");
-            }
+            } else if(tipo === '15-16' && sp) {
+                const parts = sp.split("/");
+                if(parts.length < 2) return alert("Usa formato MM/YYYY");
+                
+                const mesePartenza = parseInt(parts[0]) - 1;
+                const annoPartenza = parseInt(parts[1]);
 
-            saldoPrecedente = databaseLocale
-                .filter(item => new Date(item.data) < inizioPeriodo)
-                .reduce((acc, item) => acc + (item.entrate - item.uscite), 0);
+                // Dal 15 del mese scelto al 16 del mese successivo
+                const inizio = new Date(annoPartenza, mesePartenza, 15);
+                const fine = new Date(annoPartenza, mesePartenza + 1, 16);
+
+                dataInizioFiltro = inizio.toISOString().split('T')[0];
+                datiFiltrati = databaseLocale.filter(x => {
+                    const d = new Date(x.data);
+                    return d >= inizio && d <= fine;
+                });
+                
+                const dataFineLabel = fine.toLocaleDateString('it-IT', {day:'2-digit', month:'2-digit', year:'numeric'});
+                etichettaFiltro = `Periodo dal 15/${parts[0]}/${parts[1]} al ${dataFineLabel}`;
+            }
             
-            mostraRisultati();
+            saldoPrecedente = calcolaSaldoPrecedente(dataInizioFiltro);
+            mostraRisultati(datiFiltrati);
         }
 
-        function mostraRisultati() {
+        function mostraRisultati(dati) {
+            datiFiltrati = dati.sort((a,b) => new Date(a.data) - new Date(b.data));
             const tbody = document.querySelector("#search-table tbody");
             tbody.innerHTML = "";
             let e = 0, u = 0;
-            
-            datiFiltrati.sort((a,b) => new Date(a.data) - new Date(b.data)).forEach(item => {
+            datiFiltrati.forEach(item => {
                 e += item.entrate; u += item.uscite;
-                tbody.innerHTML += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td>${item.entrate.toFixed(2)}</td><td>${item.uscite.toFixed(2)}</td><td>${item.note}</td></tr>`;
+                tbody.innerHTML += `<tr><td>${item.data.split('-').reverse().join('/')}</td><td class="green">${item.entrate.toFixed(2)} €</td><td class="red">${item.uscite.toFixed(2)} €</td><td>${item.note}</td></tr>`;
             });
-
+            const saldoPeriodo = e - u;
+            const fondoCassaTotale = saldoPrecedente + saldoPeriodo;
             document.getElementById("titolo-ricerca").innerText = etichettaFiltro;
-            const fondoF = saldoPrecedente + e - u;
             document.getElementById("search-summary").innerHTML = `
-                Saldo Precedente: <b>${saldoPrecedente.toFixed(2)}€</b><br>
-                Entrate Periodo: <span class="green">+${e.toFixed(2)}€</span><br>
-                Uscite Periodo: <span class="red">-${u.toFixed(2)}€</span><br>
-                <span style="font-size:1.1rem">FONDO FINALE: <b class="${fondoF >= 0 ? 'green' : 'red'}">${fondoF.toFixed(2)}€</b></span>
+                <div>Saldo Prec.: <span class="green">${saldoPrecedente.toFixed(2)} €</span></div>
+                <div>Entrate: <span class="green">${e.toFixed(2)} €</span></div>
+                <div>Uscite: <span class="red">${u.toFixed(2)} €</span></div>
+                <div style="border-left: 2px solid #666; padding-left: 15px;">
+                    FONDO TOTALE: <span class="green" style="font-size: 1.2rem;">${fondoCassaTotale.toFixed(2)} €</span>
+                </div>
             `;
             document.getElementById("risultati-container").style.display = "block";
-            window.scrollTo({ top: document.getElementById("risultati-container").offsetTop - 20, behavior: 'smooth' });
-        }
-
-        function generaPDF() {
-            if(datiFiltrati.length === 0) return alert("Effettua prima una ricerca!");
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            doc.setFontSize(16);
-            doc.text("REPORT GESTIONE AUTO", 14, 15);
-            doc.setFontSize(11);
-            doc.text(`Riferimento: ${etichettaFiltro}`, 14, 22);
-            doc.text(`Saldo Iniziale: ${saldoPrecedente.toFixed(2)} Euro`, 14, 28);
-
-            const rows = datiFiltrati.map(i => [i.data.split('-').reverse().join('/'), i.entrate.toFixed(2), i.uscite.toFixed(2), i.note]);
-            
-            doc.autoTable({
-                head: [['Data', 'Entrate', 'Uscite', 'Note']],
-                body: rows,
-                startY: 35,
-                theme: 'grid'
-            });
-
-            const finalY = doc.lastAutoTable.finalY + 10;
-            const eP = datiFiltrati.reduce((s, i) => s + i.entrate, 0);
-            const uP = datiFiltrati.reduce((s, i) => s + i.uscite, 0);
-            
-            doc.text(`Entrate periodo: ${eP.toFixed(2)}`, 14, finalY);
-            doc.text(`Uscite periodo: ${uP.toFixed(2)}`, 14, finalY + 6);
-            doc.setFont(undefined, 'bold');
-            doc.text(`FONDO FINALE: ${(saldoPrecedente + eP - uP).toFixed(2)} Euro`, 14, finalY + 14);
-
-            doc.save(`Report_Auto_${etichettaFiltro.replace(/[/ ]/g, '_')}.pdf`);
-        }
-
-        // Utility
-        function toggleTheme() {
-            document.body.classList.toggle("light-theme");
-            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
-        }
-
-        function checkAltro() {
-            const sel = document.getElementById("note-select").value;
-            const inputAltro = document.getElementById("altra-nota");
-            inputAltro.style.display = sel === "Altro" ? "block" : "none";
-            if(sel !== "Altro") inputAltro.value = "";
-        }
-
-        function resetForm() {
-            document.getElementById("entrate").value = 0;
-            document.getElementById("uscite").value = 0;
-            document.getElementById("note-select").value = "";
-            document.getElementById("altra-nota").style.display = "none";
-            document.getElementById("altra-nota").value = "";
-        }
-
-        function toggleVisibilita(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === "none" ? "block" : "none";
+            document.getElementById("risultati-container").scrollIntoView({behavior: "smooth"});
         }
 
         function resetFiltri() {
+            document.getElementById("search-week").valueAsDate = new Date();
+            document.getElementById("search-month").value = "";
+            document.getElementById("search-15-16").value = "";
             document.getElementById("risultati-container").style.display = "none";
-            datiFiltrati = [];
+            datiFiltrati = []; saldoPrecedente = 0;
         }
 
-        function esportaBackupJSON() {
-            const blob = new Blob([JSON.stringify(databaseLocale, null, 2)], {type : 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const dl = document.createElement('a');
-            dl.href = url;
-            dl.download = `backup_auto_${new Date().toISOString().slice(0,10)}.json`;
-            dl.click();
-        }
+        function generaPDF() {
+            if(datiFiltrati.length === 0) return alert("Nessun dato!");
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            doc.setFontSize(18); doc.text("REPORT SPESE", 14, 20);
+            doc.setFontSize(10); doc.setTextColor(100); doc.text(etichettaFiltro, 14, 27);
 
-        function importaBackupJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if(confirm("Importare i dati? Quelli attuali verranno sovrascritti.")) {
-                        databaseLocale = data;
-                        salvaEAggiorna();
-                        alert("Importazione completata!");
+            const body = datiFiltrati.map(i => [i.data.split('-').reverse().join('/'), i.entrate.toFixed(2) + " €", i.uscite.toFixed(2) + " €", i.note]);
+
+            doc.autoTable({
+                head: [['Data', 'Entrate (€)', 'Uscite (€)', 'Note']], body: body, startY: 35, theme: 'grid',
+                headStyles: { fillColor: [44, 62, 80], halign: 'center' },
+                columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
+                didParseCell: (data) => { if (data.section === 'body' && (data.column.index === 1 || data.column.index === 2)) data.cell.styles.textColor = [255, 255, 255]; },
+                didDrawCell: (data) => {
+                    if (data.section === 'body') {
+                        const cellText = data.cell.text[0]; const val = parseFloat(data.cell.raw);
+                        const xPos = data.cell.x + data.cell.width - 3; const yPos = data.cell.y + (data.cell.height / 2) + 1.5;
+                        if (data.column.index === 1 && val > 0) { doc.setTextColor(46, 125, 50); doc.text(cellText, xPos, yPos, { align: 'right' }); }
+                        else if (data.column.index === 2 && val > 0) { doc.setTextColor(211, 47, 47); doc.text(cellText, xPos, yPos, { align: 'right' }); }
+                        else if ((data.column.index === 1 || data.column.index === 2) && val === 0) { doc.setTextColor(150); doc.text(cellText, xPos, yPos, { align: 'right' }); }
                     }
-                } catch(err) { alert("File non valido!"); }
-            };
-            reader.readAsText(file);
+                }
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 15;
+            const eT = datiFiltrati.reduce((a,b) => a + b.entrate, 0);
+            const uT = datiFiltrati.reduce((a,b) => a + b.uscite, 0);
+            const totale = saldoPrecedente + (eT - uT);
+
+            doc.setFontSize(9);
+            doc.setTextColor(46, 125, 50); doc.text(`SALDO PREC: ${saldoPrecedente.toFixed(2)} €`, 14, finalY);
+            doc.text(`ENTRATE: ${eT.toFixed(2)} €`, 60, finalY);
+            doc.setTextColor(211, 47, 47); doc.text(`USCITE: ${uT.toFixed(2)} €`, 100, finalY);
+            doc.setFont(undefined, 'bold'); doc.setTextColor(46, 125, 50); doc.text(`FONDO TOTALE: ${totale.toFixed(2)} €`, 145, finalY);
+
+            doc.save(`Report_${etichettaFiltro.replace(/[/ ]/g, '_')}.pdf`);
         }
+
+        function checkAltro() { document.getElementById("altra-nota").style.display = document.getElementById("note-select").value === "Altro" ? "block" : "none"; }
+        function toggleVisibilita(id) { const el = document.getElementById(id); el.style.display = el.style.display === "none" ? "block" : "none"; }
+        function toggleTheme() { document.body.classList.toggle("light-theme"); }
+        function resetForm() { document.getElementById("entrate").value = 0; document.getElementById("uscite").value = 0; document.getElementById("note-select").value = ""; document.getElementById("altra-nota").style.display = "none"; }
     </script>
 </body>
 </html>

@@ -37,7 +37,15 @@
         input, select { height: 45px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #333; background: #2d2d2d; color: white; width: 100%; font-size: 0.95rem; box-sizing: border-box; }
         .light-theme input, .light-theme select { background: #fff; color: #333; border: 1.5px solid #cbd5e0; }
 
-        .btn { height: 45px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 0.8rem; transition: 0.2s; width: 100%; }
+        /* --- STILE TASTI --- */
+        .btn { height: 45px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 0.85rem; transition: 0.2s; width: 100%; text-transform: uppercase; }
+        
+        /* Riduzione tasti su Mobile */
+        @media (max-width: 767px) {
+            .btn { height: 36px; font-size: 0.7rem; padding: 0 8px; gap: 4px; }
+            .grid-main-form { gap: 10px; }
+        }
+
         .btn-accent { background: var(--accent); color: white; }
         .btn-info { background: var(--info); color: white; }
         .btn-danger { background: var(--danger); color: white; }
@@ -114,7 +122,8 @@
             <div class="card summary-card" style="border-top: 3px solid var(--info)"><label>Fondo Attuale</label><span class="val" id="sum-fondo-main">0.00 €</span></div>
         </div>
 
-        <button class="btn btn-secondary" onclick="toggleVisibilita('storico-container')"><i class="fa-solid fa-clock-rotate-left"></i> MOSTRA / NASCONDI STORICO COMPLETO</button>
+        <button class="btn btn-secondary" onclick="toggleVisibilita('storico-container')"><i class="fa-solid fa-clock-rotate-left"></i> MOSTRA / NASCONDI STORICO</button>
+        
         <div id="storico-container" style="display:none" class="card">
             <div class="table-wrapper">
                 <table id="storico-table">
@@ -162,7 +171,7 @@
         function inizializza() { 
             const oggi = new Date().toISOString().split('T')[0];
             document.getElementById("data").value = oggi; 
-            document.getElementById("search-week").value = oggi; // Data odierna pre-impostata
+            document.getElementById("search-week").value = oggi;
             aggiornaTabella(); 
         }
 
@@ -250,23 +259,39 @@
             doc.setFontSize(11); doc.text(reportData.titolo.replace(/_/g, " "), 14, 22);
 
             const rows = datiFiltrati.map(i => [i.data.split('-').reverse().join('/'), i.entrate.toFixed(2), i.uscite.toFixed(2), i.note]);
+            
             doc.autoTable({
                 head: [['Data', 'Entrata (€)', 'Uscita (€)', 'Nota']],
                 body: rows,
                 startY: 30,
-                theme: 'grid'
+                theme: 'grid',
+                didParseCell: function(data) {
+                    // Colora i testi nelle colonne Entrate e Uscite
+                    if (data.section === 'body') {
+                        if (data.column.index === 1) data.cell.styles.textColor = [76, 175, 80]; // Verde
+                        if (data.column.index === 2) data.cell.styles.textColor = [231, 76, 60]; // Rosso
+                    }
+                }
             });
 
             const finalY = doc.lastAutoTable.finalY + 10;
             doc.setFontSize(10);
+            
+            // Riepilogo finale con colori
+            doc.setTextColor(0,0,0);
             doc.text(`FONDO CASSA PRECEDENTE: ${reportData.saldoPrecedente.toFixed(2)} €`, 14, finalY);
+            
+            doc.setTextColor(76, 175, 80); // Verde
             doc.text(`ENTRATE DEL PERIODO: +${reportData.entratePeriodo.toFixed(2)} €`, 14, finalY + 7);
+            
+            doc.setTextColor(231, 76, 60); // Rosso
             doc.text(`USCITE DEL PERIODO: -${reportData.uscitePeriodo.toFixed(2)} €`, 14, finalY + 14);
+            
             doc.setFontSize(12);
             doc.setFont(undefined, 'bold');
+            doc.setTextColor(52, 152, 219); // Blu per il finale
             doc.text(`FONDO CASSA ATTUALE: ${reportData.saldoFinale.toFixed(2)} €`, 14, finalY + 24);
 
-            // Nome file dinamico basato sul titolo della ricerca
             doc.save(`Report_${reportData.titolo}.pdf`);
         }
 

@@ -37,13 +37,13 @@
         input, select { height: 45px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #333; background: #2d2d2d; color: white; width: 100%; font-size: 0.95rem; box-sizing: border-box; }
         .light-theme input, .light-theme select { background: #fff; color: #333; border: 1.5px solid #cbd5e0; }
 
-        /* --- STILE TASTI --- */
+        /* --- TASTI --- */
         .btn { height: 45px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 0.85rem; transition: 0.2s; width: 100%; text-transform: uppercase; }
         
-        /* Riduzione tasti su Mobile */
         @media (max-width: 767px) {
-            .btn { height: 36px; font-size: 0.7rem; padding: 0 8px; gap: 4px; }
-            .grid-main-form { gap: 10px; }
+            .btn { height: 38px; font-size: 0.65rem; padding: 0 5px; gap: 4px; }
+            /* Spaziatura tra i bottoni della ricerca */
+            .filter-actions { flex-direction: column; gap: 12px !important; }
         }
 
         .btn-accent { background: var(--accent); color: white; }
@@ -52,9 +52,21 @@
         .btn-secondary { background: var(--secondary); color: white; }
         .btn-purple { background: var(--purple); color: white; }
         
-        .summary-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-        .summary-card { padding: 15px; border-radius: 10px; text-align: center; background: rgba(255,255,255,0.03); }
-        .val { display: block; font-size: 1.2rem; font-weight: 800; margin-top: 5px; }
+        /* --- RIEPILOGO SU UNA RIGA --- */
+        .summary-container { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 8px; 
+        }
+        .summary-card { padding: 10px 5px; border-radius: 10px; text-align: center; background: rgba(255,255,255,0.03); }
+        .summary-card label { font-size: 0.55rem; }
+        .val { display: block; font-size: 0.85rem; font-weight: 800; margin-top: 5px; }
+
+        @media (min-width: 768px) {
+            .summary-card { padding: 15px; }
+            .summary-card label { font-size: 0.7rem; }
+            .val { font-size: 1.2rem; }
+        }
 
         .table-wrapper { overflow-x: auto; width: 100%; }
         table { width: 100%; border-collapse: collapse; }
@@ -69,7 +81,10 @@
         .action-btns i { cursor: pointer; }
 
         .grid-filters { display: grid; grid-template-columns: 1fr; gap: 15px; align-items: flex-end; }
-        @media (min-width: 768px) { .grid-filters { grid-template-columns: repeat(3, 1fr); } .filter-actions { grid-column: 1 / -1; display: flex; gap: 10px; } }
+        @media (min-width: 768px) { 
+            .grid-filters { grid-template-columns: repeat(3, 1fr); } 
+            .filter-actions { grid-column: 1 / -1; display: flex; gap: 10px; } 
+        }
 
         .report-summary-box {
             margin-top: 20px;
@@ -117,17 +132,17 @@
         </div>
 
         <div class="summary-container">
-            <div class="card summary-card"><label>Tot Entrate</label><span class="val green" id="sum-entrate-main">0.00 €</span></div>
-            <div class="card summary-card"><label>Tot Uscite</label><span class="val red" id="sum-uscite-main">0.00 €</span></div>
-            <div class="card summary-card" style="border-top: 3px solid var(--info)"><label>Fondo Attuale</label><span class="val" id="sum-fondo-main">0.00 €</span></div>
+            <div class="card summary-card"><label>Entrate</label><span class="val green" id="sum-entrate-main">0.00 €</span></div>
+            <div class="card summary-card"><label>Uscite</label><span class="val red" id="sum-uscite-main">0.00 €</span></div>
+            <div class="card summary-card" style="border-top: 2px solid var(--info)"><label>Fondo</label><span class="val" id="sum-fondo-main">0.00 €</span></div>
         </div>
 
-        <button class="btn btn-secondary" onclick="toggleVisibilita('storico-container')"><i class="fa-solid fa-clock-rotate-left"></i> MOSTRA / NASCONDI STORICO</button>
+        <button class="btn btn-secondary" onclick="toggleVisibilita('storico-container')"><i class="fa-solid fa-clock-rotate-left"></i> MOSTRA STORICO</button>
         
         <div id="storico-container" style="display:none" class="card">
             <div class="table-wrapper">
                 <table id="storico-table">
-                    <thead><tr><th>Data</th><th>Entrata</th><th>Uscita</th><th>Nota</th><th>Azioni</th></tr></thead>
+                    <thead><tr><th>Data</th><th>E</th><th>U</th><th>Nota</th><th></th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -136,10 +151,10 @@
         <div class="card">
             <label><i class="fa-solid fa-magnifying-glass"></i> Ricerca e Report</label>
             <div class="grid-filters">
-                <div><label>Settimana (Seleziona Giorno)</label><input type="date" id="search-week"></div>
-                <div><label>Mese (MM/YYYY)</label><input type="text" id="search-month" placeholder="01/2026"></div>
-                <div><label>Periodo 15 - 16 succ.</label><input type="text" id="search-15-16" placeholder="01/2026"></div>
-                <div class="filter-actions">
+                <div><label>Settimana</label><input type="date" id="search-week"></div>
+                <div><label>Mese</label><input type="text" id="search-month" placeholder="MM/YYYY"></div>
+                <div><label>15 - 16</label><input type="text" id="search-15-16" placeholder="MM/YYYY"></div>
+                <div class="filter-actions" style="display: flex; gap: 10px;">
                     <button class="btn btn-info" onclick="eseguiRicerca('week')">SETTIMANA</button>
                     <button class="btn btn-info" onclick="eseguiRicerca('month')">MESE</button>
                     <button class="btn btn-info" onclick="eseguiRicerca('15-16')">15-16</button>
@@ -150,8 +165,8 @@
 
         <div id="risultati-container" style="display:none" class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h4 id="titolo-ricerca" style="margin:0; color:var(--info);"></h4>
-                <button class="btn btn-secondary" style="width:auto; height:30px; padding:0 15px;" onclick="resetFiltri()">CHIUDI</button>
+                <h4 id="titolo-ricerca" style="margin:0; font-size: 0.9rem; color:var(--info);"></h4>
+                <button class="btn btn-secondary" style="width:auto; height:30px; padding:0 10px;" onclick="resetFiltri()">CHIUDI</button>
             </div>
             <div class="table-wrapper">
                 <table id="search-table">
@@ -205,18 +220,18 @@
                 let day = d.getDay() || 7;
                 inizio = new Date(d); inizio.setDate(d.getDate() - day + 1);
                 fine = new Date(inizio); fine.setDate(inizio.getDate() + 6);
-                reportData.titolo = "SETTIMANA DAL " + inizio.toLocaleDateString().replace(/\//g, "_");
+                reportData.titolo = "SETTIMANA DAL " + inizio.toLocaleDateString();
             } else if(tipo === 'month' && valMonth) {
                 let p = valMonth.split("/");
                 inizio = new Date(p[1], p[0]-1, 1);
                 fine = new Date(p[1], p[0], 0);
-                reportData.titolo = "MESE DI " + valMonth.replace(/\//g, "_");
+                reportData.titolo = "MESE DI " + valMonth;
             } else if(tipo === '15-16' && val1516) {
                 let p = val1516.split("/");
                 inizio = new Date(p[1], p[0]-1, 15);
                 fine = new Date(p[1], p[0], 16);
-                reportData.titolo = "PERIODO_15_16_DI_" + val1516.replace(/\//g, "_");
-            } else { return alert("Seleziona data/periodo!"); }
+                reportData.titolo = "PERIODO 15-16 DI " + val1516;
+            } else { return alert("Seleziona data!"); }
 
             reportData.saldoPrecedente = databaseLocale.filter(x => new Date(x.data) < inizio).reduce((acc, curr) => acc + (curr.entrate - curr.uscite), 0);
             
@@ -240,58 +255,45 @@
             });
 
             document.getElementById("report-summary-display").innerHTML = `
-                <div><label>Fondo Cassa Prec.</label><span>${reportData.saldoPrecedente.toFixed(2)} €</span></div>
-                <div><label>Spese Periodo (E/U)</label><span class="green">+${reportData.entratePeriodo.toFixed(2)}</span> / <span class="red">-${reportData.uscitePeriodo.toFixed(2)}</span></div>
-                <div style="font-weight:bold"><label>Fondo Cassa Attuale</label><span class="blue">${reportData.saldoFinale.toFixed(2)} €</span></div>
+                <div><label>Fondo Prec.</label><span>${reportData.saldoPrecedente.toFixed(2)} €</span></div>
+                <div><label>Entrate/Uscite</label><span class="green">+${reportData.entratePeriodo.toFixed(2)}</span> / <span class="red">-${reportData.uscitePeriodo.toFixed(2)}</span></div>
+                <div style="font-weight:bold"><label>Fondo Finale</label><span class="blue">${reportData.saldoFinale.toFixed(2)} €</span></div>
             `;
-
-            document.getElementById("titolo-ricerca").innerText = reportData.titolo.replace(/_/g, " ");
+            document.getElementById("titolo-ricerca").innerText = reportData.titolo;
             document.getElementById("risultati-container").style.display = "block";
-            document.getElementById("risultati-container").scrollIntoView({behavior: "smooth"});
         }
 
         function generaPDF() {
             if(datiFiltrati.length === 0) return alert("Esegui prima una ricerca!");
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
             doc.setFontSize(18); doc.text("REPORT SPESE AUTO", 14, 15);
-            doc.setFontSize(11); doc.text(reportData.titolo.replace(/_/g, " "), 14, 22);
+            doc.setFontSize(11); doc.text(reportData.titolo, 14, 22);
 
             const rows = datiFiltrati.map(i => [i.data.split('-').reverse().join('/'), i.entrate.toFixed(2), i.uscite.toFixed(2), i.note]);
-            
             doc.autoTable({
                 head: [['Data', 'Entrata (€)', 'Uscita (€)', 'Nota']],
                 body: rows,
                 startY: 30,
                 theme: 'grid',
                 didParseCell: function(data) {
-                    // Colora i testi nelle colonne Entrate e Uscite
                     if (data.section === 'body') {
-                        if (data.column.index === 1) data.cell.styles.textColor = [76, 175, 80]; // Verde
-                        if (data.column.index === 2) data.cell.styles.textColor = [231, 76, 60]; // Rosso
+                        if (data.column.index === 1) data.cell.styles.textColor = [76, 175, 80];
+                        if (data.column.index === 2) data.cell.styles.textColor = [231, 76, 60];
                     }
                 }
             });
 
             const finalY = doc.lastAutoTable.finalY + 10;
-            doc.setFontSize(10);
-            
-            // Riepilogo finale con colori
-            doc.setTextColor(0,0,0);
-            doc.text(`FONDO CASSA PRECEDENTE: ${reportData.saldoPrecedente.toFixed(2)} €`, 14, finalY);
-            
-            doc.setTextColor(76, 175, 80); // Verde
-            doc.text(`ENTRATE DEL PERIODO: +${reportData.entratePeriodo.toFixed(2)} €`, 14, finalY + 7);
-            
-            doc.setTextColor(231, 76, 60); // Rosso
-            doc.text(`USCITE DEL PERIODO: -${reportData.uscitePeriodo.toFixed(2)} €`, 14, finalY + 14);
-            
-            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text(`FONDO PRECEDENTE: ${reportData.saldoPrecedente.toFixed(2)} €`, 14, finalY);
+            doc.setTextColor(76, 175, 80);
+            doc.text(`ENTRATE PERIODO: +${reportData.entratePeriodo.toFixed(2)} €`, 14, finalY + 7);
+            doc.setTextColor(231, 76, 60);
+            doc.text(`USCITE PERIODO: -${reportData.uscitePeriodo.toFixed(2)} €`, 14, finalY + 14);
             doc.setFont(undefined, 'bold');
-            doc.setTextColor(52, 152, 219); // Blu per il finale
+            doc.setTextColor(52, 152, 219);
             doc.text(`FONDO CASSA ATTUALE: ${reportData.saldoFinale.toFixed(2)} €`, 14, finalY + 24);
-
             doc.save(`Report_${reportData.titolo}.pdf`);
         }
 
@@ -308,16 +310,18 @@
             document.getElementById("sum-uscite-main").innerText = uT.toFixed(2) + " €";
             document.getElementById("sum-fondo-main").innerText = (eT - uT).toFixed(2) + " €";
         }
+
         function preparaModifica(id) {
             const item = databaseLocale.find(x => x.id == id);
             document.getElementById("edit-id").value = item.id;
             document.getElementById("data").value = item.data;
             document.getElementById("entrate").value = item.entrate;
             document.getElementById("uscite").value = item.uscite;
-            document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-check"></i> AGGIORNA';
+            document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-check"></i> OK';
             window.scrollTo({top:0, behavior:'smooth'});
         }
-        function elimina(id) { if(confirm("Eliminare voce?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
+
+        function elimina(id) { if(confirm("Eliminare?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
         function resetForm() { document.getElementById("edit-id").value = ""; document.getElementById("entrate").value = ""; document.getElementById("uscite").value = ""; document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-plus"></i> AGGIUNGI'; }
         function toggleVisibilita(id) { let e = document.getElementById(id); e.style.display = e.style.display === "none" ? "block" : "none"; }
         function toggleTheme() { document.body.classList.toggle("light-theme"); }

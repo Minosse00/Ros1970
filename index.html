@@ -37,12 +37,10 @@
         input, select { height: 45px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #333; background: #2d2d2d; color: white; width: 100%; font-size: 0.95rem; box-sizing: border-box; }
         .light-theme input, .light-theme select { background: #fff; color: #333; border: 1.5px solid #cbd5e0; }
 
-        /* --- TASTI --- */
         .btn { height: 45px; border: none; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 0.85rem; transition: 0.2s; width: 100%; text-transform: uppercase; }
         
         @media (max-width: 767px) {
             .btn { height: 38px; font-size: 0.65rem; padding: 0 5px; gap: 4px; }
-            /* Spaziatura tra i bottoni della ricerca */
             .filter-actions { flex-direction: column; gap: 12px !important; }
         }
 
@@ -52,7 +50,6 @@
         .btn-secondary { background: var(--secondary); color: white; }
         .btn-purple { background: var(--purple); color: white; }
         
-        /* --- RIEPILOGO SU UNA RIGA --- */
         .summary-container { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -102,8 +99,6 @@
 
     <header>
         <p style="font-size: 25px;">Gestione Spese Auto Lavoro</p>
-
-
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
     </header>
 
@@ -197,18 +192,37 @@
         function aggiungiRecord() {
             const idEdit = document.getElementById("edit-id").value;
             const d = document.getElementById("data").value;
-            const e = parseFloat(document.getElementById("entrate").value) || 0;
-            const u = parseFloat(document.getElementById("uscite").value) || 0;
+            let e = parseFloat(document.getElementById("entrate").value) || 0;
+            let u = parseFloat(document.getElementById("uscite").value) || 0;
             const n = document.getElementById("note-select").value;
-            const nota = n === "Altro" ? document.getElementById("altra-nota").value : n;
-            if(!d) return alert("Data mancante!");
+            const notaInput = n === "Altro" ? document.getElementById("altra-nota").value : n;
+
+            // --- CONTROLLI DI VALIDAZIONE ---
+            if(!d) return alert("Inserisci la data!");
+            if(!n) return alert("Seleziona una nota o indica 'Ferma'!");
+
+            // Se NON è ferma, deve esserci almeno un importo
+            if(n !== "Ferma" && e === 0 && u === 0) {
+                return alert("Inserisci un importo in Entrata o Uscita, oppure seleziona 'Ferma'.");
+            }
+
+            // Se è FERMA, gli importi devono essere zero
+            if(n === "Ferma" && (e !== 0 || u !== 0)) {
+                if(confirm("Hai selezionato 'Ferma' ma ci sono degli importi. Vuoi azzerarli e salvare come auto ferma?")) {
+                    e = 0; u = 0;
+                } else {
+                    return;
+                }
+            }
+
             if(idEdit) {
                 const i = databaseLocale.findIndex(x => x.id == idEdit);
-                databaseLocale[i] = { ...databaseLocale[i], data: d, entrate: e, uscite: u, note: nota || "-" };
+                databaseLocale[i] = { ...databaseLocale[i], data: d, entrate: e, uscite: u, note: notaInput || "-" };
             } else {
-                databaseLocale.push({ id: Date.now(), data: d, entrate: e, uscite: u, note: nota || "-" });
+                databaseLocale.push({ id: Date.now(), data: d, entrate: e, uscite: u, note: notaInput || "-" });
             }
-            salvaEAggiorna(); resetForm();
+            salvaEAggiorna(); 
+            resetForm();
         }
 
         function eseguiRicerca(tipo) {
@@ -319,12 +333,37 @@
             document.getElementById("data").value = item.data;
             document.getElementById("entrate").value = item.entrate;
             document.getElementById("uscite").value = item.uscite;
+            
+            // Gestione selettore note
+            const select = document.getElementById("note-select");
+            const opzioniStandard = ["Ferma", "Diesel", "Pedaggio", "Telepass"];
+            if (opzioniStandard.includes(item.note)) {
+                select.value = item.note;
+                document.getElementById("box-altra-nota").style.display = "none";
+            } else if (item.note === "-") {
+                select.value = "";
+            } else {
+                select.value = "Altro";
+                document.getElementById("box-altra-nota").style.display = "block";
+                document.getElementById("altra-nota").value = item.note;
+            }
+
             document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-check"></i> OK';
             window.scrollTo({top:0, behavior:'smooth'});
         }
 
         function elimina(id) { if(confirm("Eliminare?")) { databaseLocale = databaseLocale.filter(d => d.id !== id); salvaEAggiorna(); } }
-        function resetForm() { document.getElementById("edit-id").value = ""; document.getElementById("entrate").value = ""; document.getElementById("uscite").value = ""; document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-plus"></i> AGGIUNGI'; }
+        
+        function resetForm() { 
+            document.getElementById("edit-id").value = ""; 
+            document.getElementById("entrate").value = ""; 
+            document.getElementById("uscite").value = ""; 
+            document.getElementById("note-select").value = ""; 
+            document.getElementById("altra-nota").value = "";
+            document.getElementById("box-altra-nota").style.display = "none";
+            document.getElementById("btn-submit").innerHTML = '<i class="fa-solid fa-plus"></i> AGGIUNGI'; 
+        }
+
         function toggleVisibilita(id) { let e = document.getElementById(id); e.style.display = e.style.display === "none" ? "block" : "none"; }
         function toggleTheme() { document.body.classList.toggle("light-theme"); }
         function checkAltro() { document.getElementById("box-altra-nota").style.display = document.getElementById("note-select").value === "Altro" ? "block" : "none"; }

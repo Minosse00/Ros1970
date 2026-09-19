@@ -4,7 +4,7 @@ self.addEventListener('install', (e) => {
       return cache.addAll([
         './index.html',
         './manifest.json',
-        './Fiat_Sedici.jpg'
+        './fiat.jpg'
       ]);
     })
   );

@@ -1,0 +1,16 @@
+{
+  "name": "Gestione Spese Auto Lavoro",
+  "short_name": "Spese Auto",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+      "src": "Fiat_Sedici.jpg",
+      "sizes": "1000x667",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

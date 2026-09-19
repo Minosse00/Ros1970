@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Gestione Spese Auto Pro</title>
+    <!-- Collegamento al Manifest PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
@@ -31,7 +35,7 @@
         .light-theme .card { background: var(--card-light); border: 1px solid #ddd; }
 
         .grid-main-form { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media (min-width: 992px) { .grid-main-form { grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1fr 0.6fr 0.6fr; align-items: flex-end; } }
+        @media (min-width: 992px) { .grid-main-form { grid-template-columns: 1.2fr 0.8fr 0.8fr 1fr 1fr 0.6fr 0.6fr 0.6fr; align-items: flex-end; } }
 
         label { display: block; margin-bottom: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; opacity: 0.6; }
         input, select { height: 45px; padding: 0 12px; border-radius: 8px; border: 1.5px solid #333; background: #2d2d2d; color: white; width: 100%; font-size: 0.95rem; box-sizing: border-box; }
@@ -123,6 +127,9 @@
                 <div><button id="btn-submit" class="btn btn-accent" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI</button></div>
                 <div><button class="btn btn-purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-upload"></i> IMPORTA</button></div>
                 <div><button class="btn btn-purple" onclick="esportaBackupJSON()"><i class="fa-solid fa-download"></i> BACKUP</button></div>
+                <!-- Tasto Esci Aggiunto -->
+                <div><button class="btn btn-danger" onclick="esciApp()"><i class="fa-solid fa-right-from-bracket"></i> ESCI</button></div>
+                
                 <div id="box-altra-nota" style="display:none; grid-column: span 2;"><label>Specifica Nota</label><input type="text" id="altra-nota"></div>
                 <input type="file" id="file-input" style="display:none" accept=".json" onchange="importaBackupJSON(event)">
             </div>
@@ -176,6 +183,15 @@
     </div>
 
     <script>
+        // Registrazione Service Worker per PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registrato con successo', reg))
+                    .catch(err => console.log('Errore registrazione Service Worker', err));
+            });
+        }
+
         let databaseLocale = JSON.parse(localStorage.getItem('db_spese_locale')) || [];
         let datiFiltrati = [];
         let reportData = { saldoPrecedente: 0, entratePeriodo: 0, uscitePeriodo: 0, saldoFinale: 0, titolo: "" };
@@ -197,16 +213,13 @@
             const n = document.getElementById("note-select").value;
             const notaInput = n === "Altro" ? document.getElementById("altra-nota").value : n;
 
-            // --- CONTROLLI DI VALIDAZIONE ---
             if(!d) return alert("Inserisci la data!");
             if(!n) return alert("Seleziona una nota o indica 'Ferma'!");
 
-            // Se NON è ferma, deve esserci almeno un importo
             if(n !== "Ferma" && e === 0 && u === 0) {
                 return alert("Inserisci un importo in Entrata o Uscita, oppure seleziona 'Ferma'.");
             }
 
-            // Se è FERMA, gli importi devono essere zero
             if(n === "Ferma" && (e !== 0 || u !== 0)) {
                 if(confirm("Hai selezionato 'Ferma' ma ci sono degli importi. Vuoi azzerarli e salvare come auto ferma?")) {
                     e = 0; u = 0;
@@ -334,7 +347,6 @@
             document.getElementById("entrate").value = item.entrate;
             document.getElementById("uscite").value = item.uscite;
             
-            // Gestione selettore note
             const select = document.getElementById("note-select");
             const opzioniStandard = ["Ferma", "Diesel", "Pedaggio", "Telepass"];
             if (opzioniStandard.includes(item.note)) {
@@ -370,6 +382,17 @@
         function resetFiltri() { document.getElementById("risultati-container").style.display = "none"; }
         function esportaBackupJSON() { const blob = new Blob([JSON.stringify(databaseLocale)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "backup.json"; a.click(); }
         function importaBackupJSON(event) { const reader = new FileReader(); reader.onload = (e) => { databaseLocale = JSON.parse(e.target.result); salvaEAggiorna(); }; reader.readAsText(event.target.files[0]); }
+        
+        // Funzione per il Tasto Esci
+        function esciApp() {
+            if (confirm("Vuoi uscire dall'applicazione?")) {
+                try {
+                    window.close();
+                } catch (e) {
+                    window.location.href = "about:blank";
+                }
+            }
+        }
     </script>
 </body>
 </html>

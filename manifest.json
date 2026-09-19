@@ -7,7 +7,7 @@
   "theme_color": "#4CAF50",
   "icons": [
     {
-      "src": "Fiat_Sedici.jpg",
+      "src": "fiat.jpg",
       "sizes": "1000x667",
       "type": "image/jpeg",
       "purpose": "any maskable"

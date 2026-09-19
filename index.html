@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Gestione Spese Auto Pro</title>
     <!-- Collegamento al Manifest PWA -->
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#4CAF50">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
@@ -102,11 +102,16 @@
 <body onload="inizializza()">
 
     <header>
-        <p style="font-size: 25px;">Gestione Spese Auto Lavoro</p>
+        <p style="font-size: 25px; margin: 0;">Gestione Spese Auto Lavoro</p>
         <button class="theme-toggle" onclick="toggleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
     </header>
 
     <div class="container">
+        <!-- Pulsante di installazione PWA personalizzato (apparirà automaticamente quando pronto) -->
+        <button id="installBtn" class="btn btn-accent" style="display: none; background: #27ae60;">
+            <i class="fa-solid fa-download"></i> Installa App Spese Auto
+        </button>
+
         <div class="card">
             <input type="hidden" id="edit-id" value="">
             <div class="grid-main-form">
@@ -127,7 +132,6 @@
                 <div><button id="btn-submit" class="btn btn-accent" onclick="aggiungiRecord()"><i class="fa-solid fa-plus"></i> AGGIUNGI</button></div>
                 <div><button class="btn btn-purple" onclick="document.getElementById('file-input').click()"><i class="fa-solid fa-upload"></i> IMPORTA</button></div>
                 <div><button class="btn btn-purple" onclick="esportaBackupJSON()"><i class="fa-solid fa-download"></i> BACKUP</button></div>
-                <!-- Tasto Esci Aggiunto -->
                 <div><button class="btn btn-danger" onclick="esciApp()"><i class="fa-solid fa-right-from-bracket"></i> ESCI</button></div>
                 
                 <div id="box-altra-nota" style="display:none; grid-column: span 2;"><label>Specifica Nota</label><input type="text" id="altra-nota"></div>
@@ -183,14 +187,41 @@
     </div>
 
     <script>
-        // Registrazione Service Worker per PWA
+        // Registrazione Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrato con successo', reg))
-                    .catch(err => console.log('Errore registrazione Service Worker', err));
+                    .then(reg => console.log('Service Worker registrato', reg))
+                    .catch(err => console.log('Errore Service Worker', err));
             });
         }
+
+        // Gestione Prompt di Installazione PWA
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installBtn) installBtn.style.display = 'inline-flex';
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('App installata');
+                }
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            if (installBtn) installBtn.style.display = 'none';
+        });
 
         let databaseLocale = JSON.parse(localStorage.getItem('db_spese_locale')) || [];
         let datiFiltrati = [];
@@ -383,7 +414,6 @@
         function esportaBackupJSON() { const blob = new Blob([JSON.stringify(databaseLocale)], {type: "application/json"}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "backup.json"; a.click(); }
         function importaBackupJSON(event) { const reader = new FileReader(); reader.onload = (e) => { databaseLocale = JSON.parse(e.target.result); salvaEAggiorna(); }; reader.readAsText(event.target.files[0]); }
         
-        // Funzione per il Tasto Esci
         function esciApp() {
             if (confirm("Vuoi uscire dall'applicazione?")) {
                 try {

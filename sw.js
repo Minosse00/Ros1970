@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('spese-auto-cache-v1').then((cache) => {
+    caches.open('spese-auto-cache-v2').then((cache) => {
       return cache.addAll([
         './index.html',
         './manifest.json',
@@ -8,6 +8,11 @@ self.addEventListener('install', (e) => {
       ]);
     })
   );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(clients.claim());
 });
 
 self.addEventListener('fetch', (e) => {

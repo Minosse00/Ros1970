@@ -73,13 +73,24 @@
             gap: 10px;
         }
 
-        h1 { font-size: 1.4rem; color: var(--text-heading); margin: 0; }
+        h1 { 
+            font-size: 1.3rem; 
+            color: var(--text-heading); 
+            margin: 0; 
+            flex: 1 1 220px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
 
         .theme-btn {
             background-color: var(--card-bg);
             color: var(--text);
             border: 1px solid var(--border);
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
@@ -255,9 +266,14 @@
 <div class="container">
     <div class="header-container">
         <h1>Gestione Ferie, Permessi, Ticket e Malattia</h1>
-        <button class="theme-btn" onclick="toggleTema()">
-            <span id="themeIcon">☀️</span> <span id="themeText">Tema Chiaro</span>
-        </button>
+        <div class="header-actions">
+            <button class="theme-btn" onclick="toggleTema()">
+                <span id="themeIcon">☀️</span> <span id="themeText">Tema Chiaro</span>
+            </button>
+            <button class="theme-btn" onclick="esciApp()" style="border-color: var(--danger); color: var(--danger);">
+                <span>🚪</span> <span>Esci</span>
+            </button>
+        </div>
     </div>
 
     <details>
@@ -514,6 +530,16 @@
         html.setAttribute('data-theme', newTheme);
         document.getElementById('themeIcon').innerText = newTheme === 'light' ? '🌙' : '☀️';
         document.getElementById('themeText').innerText = newTheme === 'light' ? 'Tema Scuro' : 'Tema Chiaro';
+    }
+
+    function esciApp() {
+        if (confirm("Vuoi uscire dall'applicazione?")) {
+            window.close();
+            // Fallback se il browser blocca la chiusura diretta della finestra
+            setTimeout(() => {
+                window.location.href = "about:blank";
+            }, 300);
+        }
     }
 
     function popolaSelettoreMeseManuale() {
@@ -799,6 +825,8 @@
         const eMat = parseFloat(document.getElementById('inputExFestManuali').value) || 0;
         const tMat = parseInt(document.getElementById('inputTicketManuali').value) || 0;
 
+        if (!mese) return alert('Seleziona un mese valido.');
+
         let row = dati.find(d => d.mese === mese);
         if (row) {
             row.ferieMaturate = fMat;
@@ -818,68 +846,45 @@
                 ticketSpesi: 0
             });
         }
+        salvaTuttiDati();
         render();
-        alert("Mese aggiornato con successo!");
+        alert('Accrediti del mese aggiornati con successo!');
     }
 
     function aggiungiFerie() {
         const tipo = document.getElementById('inputTipoAssenza').value;
-        const dInizio = document.getElementById('inputFerieDataInizio').value;
-        const dFine = document.getElementById('inputFerieDataFine').value;
+        const dataInizio = document.getElementById('inputFerieDataInizio').value;
+        const dataFine = document.getElementById('inputFerieDataFine').value;
         const oreGiorno = parseFloat(document.getElementById('inputFerieOreGiorno').value) || 8;
         const note = document.getElementById('inputFerieNote').value;
 
-        if (!dInizio || !dFine) {
-            alert("Compila le date di inizio e fine!");
-            return;
-        }
+        if (!dataInizio || !dataFine) return alert('Inserisci data inizio e data fine.');
 
-        let gg = calcolaGiorniLavorativi(dInizio, dFine);
-        if (gg <= 0) {
-            alert("Intervallo di date non valido o nessun giorno lavorativo trovato.");
-            return;
-        }
+        const giorniLavorativi = calcolaGiorniLavorativi(dataInizio, dataFine);
+        if (giorniLavorativi <= 0) return alert('Il periodo selezionato non contiene giorni lavorativi.');
 
-        ferieLog.push({
-            tipo: tipo,
-            dataInizio: dInizio,
-            dataFine: dFine,
-            giorniLavorativi: gg,
-            oreTotali: gg * oreGiorno,
-            note: note
-        });
+        const oreTotali = giorniLavorativi * oreGiorno;
 
-        document.getElementById('inputFerieNote').value = '';
+        ferieLog.push({ tipo, dataInizio, dataFine, giorniLavorativi, oreTotali, note });
+        salvaTuttiDati();
         render();
-        alert("Ferie/Permesso registrato con successo!");
+        alert('Assenza registrata con successo!');
     }
 
     function aggiungiMalattia() {
-        const dInizio = document.getElementById('inputMalattiaDataInizio').value;
-        const dFine = document.getElementById('inputMalattiaDataFine').value;
+        const dataInizio = document.getElementById('inputMalattiaDataInizio').value;
+        const dataFine = document.getElementById('inputMalattiaDataFine').value;
         const note = document.getElementById('inputMalattiaNote').value;
 
-        if (!dInizio || !dFine) {
-            alert("Compila le date di inizio e fine malattia!");
-            return;
-        }
+        if (!dataInizio || !dataFine) return alert('Inserisci data inizio e data fine malattia.');
 
-        let gg = calcolaGiorniLavorativi(dInizio, dFine);
-        if (gg <= 0) {
-            alert("Intervallo di date non valido.");
-            return;
-        }
+        const giorniLavorativi = calcolaGiorniLavorativi(dataInizio, dataFine);
+        if (giorniLavorativi <= 0) return alert('Il periodo non contiene giorni lavorativi.');
 
-        malattieLog.push({
-            dataInizio: dInizio,
-            dataFine: dFine,
-            giorniLavorativi: gg,
-            note: note
-        });
-
-        document.getElementById('inputMalattiaNote').value = '';
+        malattieLog.push({ dataInizio, dataFine, giorniLavorativi, note });
+        salvaTuttiDati();
         render();
-        alert("Malattia registrata con successo!");
+        alert('Malattia registrata con successo!');
     }
 
     function aggiungiTicketSpeso() {
@@ -888,103 +893,97 @@
         const quantita = parseInt(document.getElementById('inputTicketQuantita').value) || 1;
         const note = document.getElementById('inputTicketNote').value;
 
-        if (!dataEsatta || !meseRif) {
-            alert("Compila la data e il mese di riferimento!");
-            return;
-        }
+        if (!dataEsatta || !meseRif) return alert('Compila tutti i campi obbligatori per il ticket.');
 
-        ticketLog.push({
-            dataEsatta: dataEsatta,
-            meseRif: meseRif,
-            quantita: quantita,
-            note: note
-        });
-
-        document.getElementById('inputTicketNote').value = '';
+        ticketLog.push({ dataEsatta, meseRif, quantita, note });
+        salvaTuttiDati();
         render();
-        alert("Ticket speso registrato con successo!");
+        alert('Ticket speso registrato con successo!');
     }
 
-    function apriModalEdit(tipo, index) {
-        currentEditState = { type: tipo, index: index };
+    function eliminaFerie(idx) {
+        if (confirm('Vuoi davvero eliminare questa assenza?')) {
+            ferieLog.splice(idx, 1);
+            render();
+        }
+    }
+
+    function eliminaMalattia(idx) {
+        if (confirm('Vuoi davvero eliminare questa malattia?')) {
+            malattieLog.splice(idx, 1);
+            render();
+        }
+    }
+
+    function eliminaTicket(idx) {
+        if (confirm('Vuoi davvero eliminare questo ticket speso?')) {
+            ticketLog.splice(idx, 1);
+            render();
+        }
+    }
+
+    function eliminaMeseProspetto(idx) {
+        if (confirm('Vuoi eliminare questo mese dal prospetto?')) {
+            dati.splice(idx, 1);
+            render();
+        }
+    }
+
+    function confermaEAggiornaModifiche() {
+        dati.forEach((d, idx) => {
+            const fmInput = document.getElementById(`fm_${idx}`);
+            const rmInput = document.getElementById(`rm_${idx}`);
+            const emInput = document.getElementById(`em_${idx}`);
+            const tmInput = document.getElementById(`tm_${idx}`);
+
+            if (fmInput) d.ferieMaturate = parseFloat(fmInput.value) || 0;
+            if (rmInput) d.rolMaturati = parseFloat(rmInput.value) || 0;
+            if (emInput) d.exFestMaturate = parseFloat(emInput.value) || 0;
+            if (tmInput) d.ticketMaturati = parseInt(tmInput.value) || 0;
+        });
+        salvaTuttiDati();
+        render();
+        alert('Prospetto mensile salvato e ricalcolato correttamente!');
+    }
+
+    function apriModalEdit(tipo, idx) {
+        currentEditState = { type, index: idx };
         const modal = document.getElementById('modalEdit');
-        const title = document.getElementById('modalTitle');
-        const body = document.getElementById('modalBody');
+        const modalBody = document.getElementById('modalBody');
+        const modalTitle = document.getElementById('modalTitle');
+        modalBody.innerHTML = '';
 
         if (tipo === 'FERIE') {
-            const item = ferieLog[index];
-            const oreGiorno = item.giorniLavorativi > 0 ? (item.oreTotali / item.giorniLavorativi) : 8;
-            title.innerText = "Modifica Ferie / Permesso";
-            body.innerHTML = `
-                <div class="form-row">
-                    <label>Tipo Assenza:</label>
-                    <select id="editFerieTipo">
-                        <option value="FERIE" ${item.tipo === 'FERIE' ? 'selected' : ''}>Ferie</option>
-                        <option value="ROL" ${item.tipo === 'ROL' ? 'selected' : ''}>ROL (Permesso)</option>
-                        <option value="EX_FEST" ${item.tipo === 'EX_FEST' ? 'selected' : ''}>Ex Festività</option>
+            const item = ferieLog[idx];
+            modalTitle.innerText = 'Modifica Assenza';
+            modalBody.innerHTML = `
+                <div class="form-row"><label>Tipo:</label>
+                    <select id="editTipo">
+                        <option value="FERIE" ${item.tipo==='FERIE'?'selected':''}>Ferie</option>
+                        <option value="ROL" ${item.tipo==='ROL'?'selected':''}>ROL</option>
+                        <option value="EX_FEST" ${item.tipo==='EX_FEST'?'selected':''}>Ex Festività</option>
                     </select>
                 </div>
-                <div class="form-row-group">
-                    <div class="form-row">
-                        <label>Data Inizio:</label>
-                        <input type="date" id="editFerieDataInizio" value="${item.dataInizio}">
-                    </div>
-                    <div class="form-row">
-                        <label>Data Fine:</label>
-                        <input type="date" id="editFerieDataFine" value="${item.dataFine}">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <label>Ore Giornaliere:</label>
-                    <input type="number" id="editFerieOreGiorno" value="${oreGiorno}" step="0.5">
-                </div>
-                <div class="form-row">
-                    <label>Note:</label>
-                    <input type="text" id="editFerieNote" value="${item.note || ''}">
-                </div>
+                <div class="form-row"><label>Data Inizio:</label><input type="date" id="editDataInizio" value="${item.dataInizio}"></div>
+                <div class="form-row"><label>Data Fine:</label><input type="date" id="editDataFine" value="${item.dataFine}"></div>
+                <div class="form-row"><label>Ore Totali:</label><input type="number" step="0.5" id="editOreTotali" value="${item.oreTotali}"></div>
+                <div class="form-row"><label>Note:</label><input type="text" id="editNote" value="${item.note || ''}"></div>
             `;
         } else if (tipo === 'MALATTIA') {
-            const item = malattieLog[index];
-            title.innerText = "Modifica Malattia";
-            body.innerHTML = `
-                <div class="form-row-group">
-                    <div class="form-row">
-                        <label>Data Inizio:</label>
-                        <input type="date" id="editMalattiaDataInizio" value="${item.dataInizio}">
-                    </div>
-                    <div class="form-row">
-                        <label>Data Fine:</label>
-                        <input type="date" id="editMalattiaDataFine" value="${item.dataFine}">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <label>Note / Certificato:</label>
-                    <input type="text" id="editMalattiaNote" value="${item.note || ''}">
-                </div>
+            const item = malattieLog[idx];
+            modalTitle.innerText = 'Modifica Malattia';
+            modalBody.innerHTML = `
+                <div class="form-row"><label>Data Inizio:</label><input type="date" id="editDataInizio" value="${item.dataInizio}"></div>
+                <div class="form-row"><label>Data Fine:</label><input type="date" id="editDataFine" value="${item.dataFine}"></div>
+                <div class="form-row"><label>Note:</label><input type="text" id="editNote" value="${item.note || ''}"></div>
             `;
         } else if (tipo === 'TICKET') {
-            const item = ticketLog[index];
-            title.innerText = "Modifica Ticket Speso";
-            
-            let opzioniMesi = dati.map(d => `<option value="${d.mese}" ${d.mese === item.meseRif ? 'selected' : ''}>${formattaMeseAnno(d.mese)}</option>`).join('');
-
-            body.innerHTML = `
-                <div class="form-row">
-                    <label>Data Esatta:</label>
-                    <input type="date" id="editTicketData" value="${item.dataEsatta}">
-                </div>
-                <div class="form-row">
-                    <label>Mese Riferimento:</label>
-                    <select id="editTicketMeseRif">${opzioniMesi}</select>
-                </div>
-                <div class="form-row">
-                    <label>Quantità:</label>
-                    <input type="number" id="editTicketQuantita" value="${item.quantita}" min="1">
-                </div>
-                <div class="form-row">
-                    <label>Note:</label>
-                    <input type="text" id="editTicketNote" value="${item.note || ''}">
-                </div>
+            const item = ticketLog[idx];
+            modalTitle.innerText = 'Modifica Ticket Speso';
+            modalBody.innerHTML = `
+                <div class="form-row"><label>Data Esatta:</label><input type="date" id="editDataEsatta" value="${item.dataEsatta}"></div>
+                <div class="form-row"><label>Quantità:</label><input type="number" id="editQuantita" value="${item.quantita}"></div>
+                <div class="form-row"><label>Note:</label><input type="text" id="editNote" value="${item.note || ''}"></div>
             `;
         }
         modal.style.display = 'flex';
@@ -992,130 +991,49 @@
 
     function chiudiModal() {
         document.getElementById('modalEdit').style.display = 'none';
-        currentEditState = { type: null, index: -1 };
     }
 
     function salvaModalEdit() {
         const { type, index } = currentEditState;
-        if (index < 0 || !type) return;
-
         if (type === 'FERIE') {
-            const t = document.getElementById('editFerieTipo').value;
-            const dI = document.getElementById('editFerieDataInizio').value;
-            const dF = document.getElementById('editFerieDataFine').value;
-            const oG = parseFloat(document.getElementById('editFerieOreGiorno').value) || 8;
-            const n = document.getElementById('editFerieNote').value;
+            const tipo = document.getElementById('editTipo').value;
+            const dataInizio = document.getElementById('editDataInizio').value;
+            const dataFine = document.getElementById('editDataFine').value;
+            const oreTotali = parseFloat(document.getElementById('editOreTotali').value) || 0;
+            const note = document.getElementById('editNote').value;
+            const giorniLavorativi = calcolaGiorniLavorativi(dataInizio, dataFine);
 
-            if (!dI || !dF) { alert("Compila le date!"); return; }
-            let gg = calcolaGiorniLavorativi(dI, dF);
-            if (gg <= 0) { alert("Intervallo di date non valido!"); return; }
-
-            ferieLog[index] = {
-                tipo: t,
-                dataInizio: dI,
-                dataFine: dF,
-                giorniLavorativi: gg,
-                oreTotali: gg * oG,
-                note: n
-            };
+            ferieLog[index] = { tipo, dataInizio, dataFine, giorniLavorativi, oreTotali, note };
         } else if (type === 'MALATTIA') {
-            const dI = document.getElementById('editMalattiaDataInizio').value;
-            const dF = document.getElementById('editMalattiaDataFine').value;
-            const n = document.getElementById('editMalattiaNote').value;
+            const dataInizio = document.getElementById('editDataInizio').value;
+            const dataFine = document.getElementById('editDataFine').value;
+            const note = document.getElementById('editNote').value;
+            const giorniLavorativi = calcolaGiorniLavorativi(dataInizio, dataFine);
 
-            if (!dI || !dF) { alert("Compila le date!"); return; }
-            let gg = calcolaGiorniLavorativi(dI, dF);
-            if (gg <= 0) { alert("Intervallo di date non valido!"); return; }
-
-            malattieLog[index] = {
-                dataInizio: dI,
-                dataFine: dF,
-                giorniLavorativi: gg,
-                note: n
-            };
+            malattieLog[index] = { dataInizio, dataFine, giorniLavorativi, note };
         } else if (type === 'TICKET') {
-            const dE = document.getElementById('editTicketData').value;
-            const mR = document.getElementById('editTicketMeseRif').value;
-            const q = parseInt(document.getElementById('editTicketQuantita').value) || 1;
-            const n = document.getElementById('editTicketNote').value;
+            const dataEsatta = document.getElementById('editDataEsatta').value;
+            const quantita = parseInt(document.getElementById('editQuantita').value) || 1;
+            const note = document.getElementById('editNote').value;
+            const meseRif = dataEsatta.substring(0, 7);
 
-            if (!dE || !mR) { alert("Compila i campi obbligatori!"); return; }
-
-            ticketLog[index] = {
-                dataEsatta: dE,
-                meseRif: mR,
-                quantita: q,
-                note: n
-            };
+            ticketLog[index] = { dataEsatta, meseRif, quantita, note };
         }
-
+        salvaTuttiDati();
+        render();
         chiudiModal();
-        render();
-        alert("Modifica salvata con successo!");
-    }
-
-    function eliminaFerie(idx) {
-        if (confirm("Vuoi eliminare questa voce?")) {
-            ferieLog.splice(idx, 1);
-            render();
-        }
-    }
-
-    function eliminaMalattia(idx) {
-        if (confirm("Vuoi eliminare questa malattia?")) {
-            malattieLog.splice(idx, 1);
-            render();
-        }
-    }
-
-    function eliminaTicket(idx) {
-        if (confirm("Vuoi eliminare questo ticket speso?")) {
-            ticketLog.splice(idx, 1);
-            render();
-        }
-    }
-
-    function eliminaMeseProspetto(idx) {
-        if (confirm("Eliminare interamente questo mese e le relative impostazioni?")) {
-            let m = dati[idx].mese;
-            dati.splice(idx, 1);
-            ferieLog = ferieLog.filter(f => f.dataInizio.substring(0, 7) !== m);
-            malattieLog = malattieLog.filter(ml => ml.dataInizio.substring(0, 7) !== m);
-            ticketLog = ticketLog.filter(t => t.meseRif !== m);
-            render();
-        }
-    }
-
-    function confermaEAggiornaModifiche() {
-        dati.forEach((d, idx) => {
-            let fm = document.getElementById(`fm_${idx}`);
-            let rm = document.getElementById(`rm_${idx}`);
-            let em = document.getElementById(`em_${idx}`);
-            let tm = document.getElementById(`tm_${idx}`);
-
-            if (fm) d.ferieMaturate = parseFloat(fm.value) || 0;
-            if (rm) d.rolMaturati = parseFloat(rm.value) || 0;
-            if (em) d.exFestMaturate = parseFloat(em.value) || 0;
-            if (tm) d.ticketMaturati = parseInt(tm.value) || 0;
-        });
-        render();
-        alert("Modifiche mensili salvate con successo!");
+        alert('Modifica salvata con successo!');
     }
 
     function esportaBackup() {
-        const backupData = {
-            dati: dati,
-            ferieLog: ferieLog,
-            malattieLog: malattieLog,
-            ticketLog: ticketLog
-        };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `backup_ferie_${new Date().toISOString().substring(0,10)}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
+        const payload = { dati, ferieLog, malattieLog, ticketLog };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_gestionale_ferie_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     function apriSelettoreFile() {
@@ -1129,38 +1047,25 @@
         reader.onload = function(e) {
             try {
                 const parsed = JSON.parse(e.target.result);
-                if (parsed.dati && parsed.ferieLog && parsed.malattieLog && parsed.ticketLog) {
-                    dati = parsed.dati;
-                    ferieLog = parsed.ferieLog;
-                    malattieLog = parsed.malattieLog;
-                    ticketLog = parsed.ticketLog;
-                    salvaTuttiDati();
-                    render();
-                    alert("Ripristino effettuato con successo!");
-                } else {
-                    alert("Il file JSON non ha la struttura corretta.");
-                }
+                if (parsed.dati) dati = parsed.dati;
+                if (parsed.ferieLog) ferieLog = parsed.ferieLog;
+                if (parsed.malattieLog) malattieLog = parsed.malattieLog;
+                if (parsed.ticketLog) ticketLog = parsed.ticketLog;
+                salvaTuttiDati();
+                render();
+                alert('Backup ripristinato con successo!');
             } catch (err) {
-                alert("Errore durante la lettura del file JSON.");
+                alert('Errore durante la lettura del file di backup JSON.');
             }
         };
         reader.readAsText(file);
-        event.target.value = '';
     }
 
-    caricaDatiIniziali();
-    sincronizzaAccreditiMensiliAutomatici();
-    render();
-
-    // Registrazione del Service Worker per la PWA
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker registrato con successo!'))
-                .catch(err => console.error('Errore registrazione Service Worker:', err));
-        });
-    }
+    window.onload = function() {
+        caricaDatiIniziali();
+        sincronizzaAccreditiMensiliAutomatici();
+        render();
+    };
 </script>
-
 </body>
 </html>
